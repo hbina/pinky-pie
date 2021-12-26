@@ -1,0 +1,27 @@
+[package]
+name = "app"
+version = "0.1.0"
+description = "A Tauri App"
+authors = [ "you" ]
+license = ""
+repository = ""
+default-run = "app"
+edition = "2018"
+build = "src/build.rs"
+
+[build-dependencies]
+tauri-build = { version = "1.0.0-beta.4" }
+
+[dependencies]
+serde_json = "1.0"
+backtrace = "0.3"
+serde = { version = "1.0", features = [ "derive" ] }
+tauri = { git = "https://github.com/tauri-apps/tauri", rev = "9c9dead", features = ["api-all", "dialog-open", "dialog-save", "shell-open"], version = "1.0.0-beta.8" }
+id3 = "0.6.4"
+mp4ameta = "0.11.0"
+base64 = "0.13.0"
+mongodb = { version = "2.0.0", default-features = false, features = [ "sync", "bson-chrono-0_4" ] }
+
+[features]
+default = [ "custom-protocol" ]
+custom-protocol = [ "tauri/custom-protocol" ]
