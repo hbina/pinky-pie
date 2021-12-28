@@ -1,4 +1,3 @@
-import { DebouncedFunc } from "lodash";
 import { Button } from "react-bootstrap";
 
 import { ReactSetState, MongodbConnectInput } from "../types";
@@ -7,11 +6,11 @@ const MongoDbUrlBar = ({
   url,
   setUrl,
   connect_mongodb,
-}: {
+}: Readonly<{
   url: string;
   setUrl: ReactSetState<string>;
   connect_mongodb: (input: MongodbConnectInput) => void;
-}) => {
+}>) => {
   return (
     <div
       style={{

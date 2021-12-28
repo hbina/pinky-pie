@@ -15,6 +15,7 @@ import {
   ListDocumentsInput,
 } from "./types";
 import { Card, Spinner } from "react-bootstrap";
+import DocumentListing from "./components/DocumentListing";
 
 const invoke: <O>(
   name: string,
@@ -101,23 +102,7 @@ const App = () => {
         list_collections={list_collections}
         list_documents={list_documents}
       />
-      <div>
-        {loading && (
-          <Spinner animation="border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-        )}
-        {!loading &&
-          collectionDocuments.map((document, idx) => (
-            <div key={idx}>
-              <Card>
-                <Card.Body>
-                  <ReactJson src={document} collapsed={1} />
-                </Card.Body>
-              </Card>
-            </div>
-          ))}
-      </div>
+      <DocumentListing loading={loading} documents={collectionDocuments} />
     </div>
   );
 };

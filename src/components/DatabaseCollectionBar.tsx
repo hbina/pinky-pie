@@ -1,13 +1,5 @@
-import { DebouncedFunc } from "lodash";
 import { useEffect, useState } from "react";
-import {
-  Dropdown,
-  Button,
-  ButtonGroup,
-  InputGroup,
-  FormControl,
-  Pagination,
-} from "react-bootstrap";
+import { Dropdown, Pagination } from "react-bootstrap";
 
 import {
   CollectionSpecification,
@@ -21,12 +13,12 @@ const DatabaseCollectionBar = ({
   databaseCollections,
   list_collections,
   list_documents,
-}: {
+}: Readonly<{
   databases: DatabaseSpecification[];
   databaseCollections: Record<string, CollectionSpecification[]>;
   list_collections: (input: ListCollectionsInput) => void;
   list_documents: (input: ListDocumentsInput) => void;
-}) => {
+}>) => {
   const [databaseName, setDatabaseName] = useState("");
   const [collectionName, setCollectionName] = useState("");
   const [perPage] = useState(5);
