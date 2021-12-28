@@ -42,12 +42,17 @@ pub async fn list_documents(
   state: AppArg<'_>,
   database_name: String,
   collection_name: String,
+  page: i64,
+  per_page: i64,
 ) -> Result<Vec<mongodb::bson::Document>, String> {
   let handle = &*state.0.lock().unwrap();
   if let Some(client) = handle {
     let database = client.database(&database_name);
     let collections = database.collection(&collection_name);
-    let find_options = mongodb::options::FindOptions::builder().limit(2).build();
+    let find_options = mongodb::options::FindOptions::builder()
+      .limit(per_page)
+      .skip((per_page * page) as u64)
+      .build();
     let documents = collections
       .find(None, find_options)
       .unwrap()

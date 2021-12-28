@@ -1,12 +1,17 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import React from "react";
-import { Button, Accordion, ButtonGroup } from "react-bootstrap";
 import ReactJson from "react-json-view";
+import { debounce } from "lodash";
 
-import styles from "./App.module.css";
-import TopNavBar from "./components/TopNavBar";
-import LeftNavBar from "./components/LeftNavBar";
+import MongoDbUrlBar from "./components/MongoDbUrlBar";
+import DatabaseCollectionBar from "./components/DatabaseCollectionBar";
+import {
+  DatabaseSpecification,
+  CollectionSpecification,
+  BsonDocument,
+} from "./types";
+import { Card } from "react-bootstrap";
 
 const invoke: <O>(
   name: string,
@@ -15,23 +20,8 @@ const invoke: <O>(
   // @ts-ignore
   window.__TAURI__.invoke;
 
-type DatabaseSpecification = Readonly<{
-  name: string;
-  sizeOnDisk: number;
-  empty: boolean;
-  shards?: Record<string, unknown>;
-}>;
-
-type CollectionSpecification = Readonly<{
-  name: string;
-  type: string;
-}>;
-
-type BsonDocument = Readonly<Record<string, unknown>>;
-
 const App = () => {
   const [url, setUrl] = React.useState("mongodb://localhost:27017");
-  const [disableInput, setDisableInput] = React.useState(false);
   const [databases, setDatabases] = React.useState<DatabaseSpecification[]>([]);
   const [databaseCollections, setDatabaseCollections] = React.useState<
     Record<string, CollectionSpecification[]>
@@ -40,7 +30,7 @@ const App = () => {
     BsonDocument[]
   >([]);
 
-  const connect_mongodb = async (mongodbUrl: string) => {
+  const connect_mongodb = debounce(async (mongodbUrl: string) => {
     try {
       const response = await invoke<DatabaseSpecification[]>(
         "connect_mongodb",
@@ -50,13 +40,12 @@ const App = () => {
       );
       console.log("connect_mongodb", response);
       setDatabases(response);
-      setDisableInput(true);
     } catch (error) {
       console.error(error);
     }
-  };
+  }, 2000);
 
-  const list_collections = async (databaseName: string) => {
+  const list_collections = debounce(async (databaseName: string) => {
     try {
       const response = await invoke<CollectionSpecification[]>(
         "list_collections",
@@ -72,46 +61,63 @@ const App = () => {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, 2000);
 
-  const list_documents = async (
-    databaseName: string,
-    collectionName: string
-  ) => {
-    try {
-      const response = await invoke<BsonDocument[]>("list_documents", {
-        databaseName,
-        collectionName,
-      });
-      console.log("list_documents", response);
-      setCollectionDocuments(response);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const list_documents = debounce(
+    async (
+      databaseName: string,
+      collectionName: string,
+      page: number,
+      perPage: number
+    ) => {
+      try {
+        const response = await invoke<BsonDocument[]>("list_documents", {
+          databaseName,
+          collectionName,
+          page,
+          perPage,
+        });
+        console.log(
+          "list_documents",
+          {
+            databaseName,
+            collectionName,
+            page,
+            perPage,
+          },
+          response
+        );
+        setCollectionDocuments(response);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    2000
+  );
 
   return (
-    <div className={styles.AppContainer}>
-      <TopNavBar
+    <div>
+      <MongoDbUrlBar
         url={url}
         setUrl={setUrl}
-        disableInput={disableInput}
         connect_mongodb={connect_mongodb}
       />
-      <div className={styles.BottomBox}>
-        <LeftNavBar
-          databases={databases}
-          databaseCollections={databaseCollections}
-          list_collections={list_collections}
-          list_documents={list_documents}
-        />
-        <div className={styles.RightBox}>
-          {collectionDocuments.map((document, idx) => (
-            <div key={idx}>
-              <ReactJson src={document} />
-            </div>
-          ))}
-        </div>
+      <DatabaseCollectionBar
+        databases={databases}
+        databaseCollections={databaseCollections}
+        list_collections={list_collections}
+        list_documents={list_documents}
+      />
+      <div>
+        {collectionDocuments.map((document, idx) => (
+          <div key={idx}>
+            <Card>
+              <Card.Body>
+                <ReactJson src={document} />
+              </Card.Body>
+            </Card>
+          </div>
+        ))}
       </div>
     </div>
   );
