@@ -1,6 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import React from "react";
+import { useState } from "react";
 import ReactJson from "react-json-view";
 import { debounce } from "lodash";
 
@@ -11,7 +11,7 @@ import {
   CollectionSpecification,
   BsonDocument,
 } from "./types";
-import { Card } from "react-bootstrap";
+import { Card, Spinner } from "react-bootstrap";
 
 const invoke: <O>(
   name: string,
@@ -21,24 +21,26 @@ const invoke: <O>(
   window.__TAURI__.invoke;
 
 const App = () => {
-  const [url, setUrl] = React.useState("mongodb://localhost:27017");
-  const [databases, setDatabases] = React.useState<DatabaseSpecification[]>([]);
-  const [databaseCollections, setDatabaseCollections] = React.useState<
+  const [url, setUrl] = useState("mongodb://localhost:27017");
+  const [databases, setDatabases] = useState<DatabaseSpecification[]>([]);
+  const [databaseCollections, setDatabaseCollections] = useState<
     Record<string, CollectionSpecification[]>
   >({});
-  const [collectionDocuments, setCollectionDocuments] = React.useState<
+  const [collectionDocuments, setCollectionDocuments] = useState<
     BsonDocument[]
   >([]);
+  const [loading, setLoading] = useState(false);
 
   const connect_mongodb = debounce(async (mongodbUrl: string) => {
     try {
+      setLoading(true);
       const response = await invoke<DatabaseSpecification[]>(
         "connect_mongodb",
         {
           mongodbUrl,
         }
       );
-      console.log("connect_mongodb", response);
+      setLoading(false);
       setDatabases(response);
     } catch (error) {
       console.error(error);
@@ -47,13 +49,14 @@ const App = () => {
 
   const list_collections = debounce(async (databaseName: string) => {
     try {
+      setLoading(true);
       const response = await invoke<CollectionSpecification[]>(
         "list_collections",
         {
           databaseName,
         }
       );
-      console.log("list_collections", response);
+      setLoading(false);
       setDatabaseCollections((curr) => ({
         ...curr,
         [databaseName]: response,
@@ -71,22 +74,14 @@ const App = () => {
       perPage: number
     ) => {
       try {
+        setLoading(true);
         const response = await invoke<BsonDocument[]>("list_documents", {
           databaseName,
           collectionName,
           page,
           perPage,
         });
-        console.log(
-          "list_documents",
-          {
-            databaseName,
-            collectionName,
-            page,
-            perPage,
-          },
-          response
-        );
+        setLoading(false);
         setCollectionDocuments(response);
       } catch (error) {
         console.error(error);
@@ -109,15 +104,21 @@ const App = () => {
         list_documents={list_documents}
       />
       <div>
-        {collectionDocuments.map((document, idx) => (
-          <div key={idx}>
-            <Card>
-              <Card.Body>
-                <ReactJson src={document} />
-              </Card.Body>
-            </Card>
-          </div>
-        ))}
+        {loading && (
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </Spinner>
+        )}
+        {!loading &&
+          collectionDocuments.map((document, idx) => (
+            <div key={idx}>
+              <Card>
+                <Card.Body>
+                  <ReactJson src={document} />
+                </Card.Body>
+              </Card>
+            </div>
+          ))}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { DebouncedFunc } from "lodash";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dropdown, Button } from "react-bootstrap";
 
 import { CollectionSpecification, DatabaseSpecification } from "../types";
@@ -24,23 +24,16 @@ const DatabaseCollectionBar = ({
 }) => {
   const [databaseName, setDatabaseName] = useState("");
   const [collectionName, setCollectionName] = useState("");
-  const [perPage, setPerPage] = useState(20);
-  const [page, setPage] = useState(1);
+  const [perPage] = useState(5);
+  const [page, setPage] = useState(0);
 
-  /*
   useEffect(() => {
-    if (databaseName) list_collections(databaseName);
-    if (databaseName && collectionName)
-      list_documents(databaseName, collectionName, page, perPage);
-  }, [
-    databaseName,
-    collectionName,
-    page,
-    perPage,
-    list_collections,
-    list_documents,
-  ]);
-  */
+    list_documents(databaseName, collectionName, 0, perPage);
+  }, [databaseName, collectionName, page, perPage, list_documents]);
+
+  useEffect(() => {
+    list_collections(databaseName);
+  }, [databaseName, list_collections]);
 
   return (
     <div
@@ -56,12 +49,7 @@ const DatabaseCollectionBar = ({
         <Dropdown.Toggle>{databaseName}</Dropdown.Toggle>
         <Dropdown.Menu>
           {databases.map(({ name }) => (
-            <Dropdown.Item
-              onClick={() => {
-                setDatabaseName(name);
-                list_collections(name);
-              }}
-            >
+            <Dropdown.Item onClick={() => setDatabaseName(name)}>
               {name}
             </Dropdown.Item>
           ))}
@@ -70,26 +58,14 @@ const DatabaseCollectionBar = ({
       <Dropdown>
         <Dropdown.Toggle>{collectionName}</Dropdown.Toggle>
         <Dropdown.Menu>
-          {(databaseCollections[databaseName] ?? []).map(({ name }) => (
-            <Dropdown.Item
-              onClick={() => {
-                setCollectionName(name);
-                if (databaseName)
-                  list_documents(databaseName, name, page, perPage);
-              }}
-            >
+          {(databaseCollections[databaseName] ?? []).map(({ name }, idx) => (
+            <Dropdown.Item key={idx} onClick={() => setCollectionName(name)}>
               {name}
             </Dropdown.Item>
           ))}
         </Dropdown.Menu>
       </Dropdown>
-      <Button
-        onClick={() => {
-          setPage((page) => Math.max(1, page - 1));
-          if (databaseName && collectionName)
-            list_documents(databaseName, collectionName, page, perPage);
-        }}
-      >
+      <Button onClick={() => setPage((page) => page - 1)}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
@@ -101,15 +77,9 @@ const DatabaseCollectionBar = ({
         </svg>
       </Button>
       <p>
-        page:{page} perPage:{perPage}
+        page:{page + 1} perPage:{perPage}
       </p>
-      <Button
-        onClick={() => {
-          setPage((page) => page + 1);
-          if (databaseName && collectionName)
-            list_documents(databaseName, collectionName, page, perPage);
-        }}
-      >
+      <Button onClick={() => setPage((page) => page + 1)}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
