@@ -1,8 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import { useCallback, useState } from "react";
-import ReactJson from "react-json-view";
-import { debounce } from "lodash";
 
 import MongoDbUrlBar from "./components/MongoDbUrlBar";
 import DatabaseCollectionBar from "./components/DatabaseCollectionBar";
@@ -14,7 +12,7 @@ import {
   ListCollectionsInput,
   ListDocumentsInput,
 } from "./types";
-import { Card, Spinner } from "react-bootstrap";
+import { Tab, Tabs } from "react-bootstrap";
 import DocumentListing from "./components/DocumentListing";
 
 const invoke: <O>(
@@ -33,6 +31,7 @@ const App = () => {
   const [collectionDocuments, setCollectionDocuments] = useState<
     BsonDocument[]
   >([]);
+  const [estimatedDocumentCount, setEstimatedDocumentCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const connect_mongodb = useCallback((input: MongodbConnectInput) => {
@@ -57,15 +56,15 @@ const App = () => {
     const f = async (input: ListCollectionsInput) => {
       try {
         setLoading(true);
-        const response = await invoke<CollectionSpecification[]>(
+        const collections = await invoke<CollectionSpecification[]>(
           "list_collections",
           input
         );
-        console.log("list_collections", response);
+        console.log("list_collections", collections);
         setLoading(false);
         setDatabaseCollections((curr) => ({
           ...curr,
-          [input.databaseName]: response,
+          [input.databaseName]: collections,
         }));
       } catch (error) {
         console.error(error);
@@ -78,10 +77,15 @@ const App = () => {
     const f = async (input: ListDocumentsInput) => {
       try {
         setLoading(true);
-        const response = await invoke<BsonDocument[]>("list_documents", input);
-        console.log("list_documents", response);
+        const documents = await invoke<BsonDocument[]>("list_documents", input);
+        console.log("list_documents", documents);
+        const estimatedDocumentCount = await invoke<number>(
+          "estimated_document_count",
+          input
+        );
         setLoading(false);
-        setCollectionDocuments(response);
+        setCollectionDocuments(documents);
+        setEstimatedDocumentCount(estimatedDocumentCount);
       } catch (error) {
         console.error(error);
       }
@@ -101,8 +105,16 @@ const App = () => {
         databaseCollections={databaseCollections}
         list_collections={list_collections}
         list_documents={list_documents}
+        estimatedDocumentCount={estimatedDocumentCount}
       />
-      <DocumentListing loading={loading} documents={collectionDocuments} />
+      <Tabs defaultActiveKey="document_listing_tab">
+        <Tab eventKey="document_listing_tab" title="Documents">
+          <DocumentListing loading={loading} documents={collectionDocuments} />
+        </Tab>
+        <Tab eventKey="document_aggregation_tab" title="Aggregation">
+          <p>hello world</p>
+        </Tab>
+      </Tabs>
     </div>
   );
 };

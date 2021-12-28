@@ -13,11 +13,13 @@ const DatabaseCollectionBar = ({
   databaseCollections,
   list_collections,
   list_documents,
+  estimatedDocumentCount,
 }: Readonly<{
   databases: DatabaseSpecification[];
   databaseCollections: Record<string, CollectionSpecification[]>;
   list_collections: (input: ListCollectionsInput) => void;
   list_documents: (input: ListDocumentsInput) => void;
+  estimatedDocumentCount: number;
 }>) => {
   const [databaseName, setDatabaseName] = useState("");
   const [collectionName, setCollectionName] = useState("");
@@ -32,6 +34,13 @@ const DatabaseCollectionBar = ({
   useEffect(() => {
     if (databaseName) list_collections({ databaseName });
   }, [databaseName, list_collections]);
+
+  const paginationInfo =
+    databaseName && collectionName
+      ? `Displaying documents ${perPage * page + 1} - ${
+          perPage * (page + 1)
+        } of ${estimatedDocumentCount}`
+      : "";
 
   return (
     <div
@@ -86,12 +95,11 @@ const DatabaseCollectionBar = ({
           padding: "5px",
         }}
       >
-        <p>perPage: {perPage}</p>
+        <p>{paginationInfo}</p>
         <Pagination>
           <Pagination.Prev
             onClick={() => setPage((page) => Math.max(0, page - 1))}
           />
-          <Pagination.Item disabled>{page}</Pagination.Item>
           <Pagination.Next onClick={() => setPage((page) => page + 1)} />
         </Pagination>
       </div>

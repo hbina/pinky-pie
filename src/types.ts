@@ -25,3 +25,7 @@ export type ListDocumentsInput = Readonly<{
   page: number;
   perPage: number;
 }>;
+export type EstimatedDocumentCountInput = Readonly<{
+  databaseName: string;
+  collectionName: string;
+}>;

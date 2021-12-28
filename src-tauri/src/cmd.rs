@@ -57,10 +57,6 @@ pub async fn list_documents(
       .limit(per_page)
       .skip((per_page * page) as u64)
       .build();
-    println!("database_name:{}", database_name);
-    println!("collection_name:{}", collection_name);
-    println!("page:{}", page);
-    println!("per_page:{}", per_page);
     collections
       .find(None, find_options)
       .and_then(|r| r.collect::<Result<Vec<_>, _>>())
@@ -68,6 +64,25 @@ pub async fn list_documents(
         eprintln!("list_documents::{}", err);
         "Unable to open collection".to_string()
       })
+  } else {
+    Err("Unable to list documents in collection".to_string())
+  }
+}
+
+#[command]
+pub async fn estimated_document_count(
+  state: AppArg<'_>,
+  database_name: String,
+  collection_name: String,
+) -> Result<u64, String> {
+  let handle = &*state.0.lock().unwrap();
+  if let Some(client) = handle {
+    let database = client.database(&database_name);
+    let collections = database.collection::<mongodb::bson::Document>(&collection_name);
+    collections.estimated_document_count(None).map_err(|err| {
+      eprintln!("estimated_document_count::{}", err);
+      "Unable to estimated document count in a collection".to_string()
+    })
   } else {
     Err("Unable to list documents in collection".to_string())
   }
