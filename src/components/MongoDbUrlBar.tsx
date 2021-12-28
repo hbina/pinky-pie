@@ -1,7 +1,7 @@
 import { DebouncedFunc } from "lodash";
 import { Button } from "react-bootstrap";
 
-import { ReactSetState } from "../types";
+import { ReactSetState, MongodbConnectInput } from "../types";
 
 const MongoDbUrlBar = ({
   url,
@@ -10,7 +10,7 @@ const MongoDbUrlBar = ({
 }: {
   url: string;
   setUrl: ReactSetState<string>;
-  connect_mongodb: DebouncedFunc<(mongodbUrl: string) => Promise<void>>;
+  connect_mongodb: (input: MongodbConnectInput) => void;
 }) => {
   return (
     <div
@@ -36,10 +36,16 @@ const MongoDbUrlBar = ({
           placeholder="MongoDB URL"
           onChange={(e) => setUrl(e.target.value)}
         />
-        <Button variant="primary" onClick={() => connect_mongodb(url)}>
+        <Button
+          variant="primary"
+          onClick={() => connect_mongodb({ mongodbUrl: url })}
+        >
           Connect
         </Button>
-        <Button variant="primary" onClick={() => connect_mongodb(url)}>
+        <Button
+          variant="primary"
+          onClick={() => connect_mongodb({ mongodbUrl: url })}
+        >
           Refresh
         </Button>
       </div>

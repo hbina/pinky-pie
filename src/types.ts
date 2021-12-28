@@ -16,3 +16,12 @@ export type CollectionSpecification = Readonly<{
 }>;
 
 export type BsonDocument = Readonly<Record<string, unknown>>;
+
+export type MongodbConnectInput = Readonly<{ mongodbUrl: string }>;
+export type ListCollectionsInput = Readonly<{ databaseName: string }>;
+export type ListDocumentsInput = Readonly<{
+  databaseName: string;
+  collectionName: string;
+  page: number;
+  perPage: number;
+}>;

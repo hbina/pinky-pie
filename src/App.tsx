@@ -1,6 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import ReactJson from "react-json-view";
 import { debounce } from "lodash";
 
@@ -10,6 +10,9 @@ import {
   DatabaseSpecification,
   CollectionSpecification,
   BsonDocument,
+  MongodbConnectInput,
+  ListCollectionsInput,
+  ListDocumentsInput,
 } from "./types";
 import { Card, Spinner } from "react-bootstrap";
 
@@ -31,64 +34,59 @@ const App = () => {
   >([]);
   const [loading, setLoading] = useState(false);
 
-  const connect_mongodb = debounce(async (mongodbUrl: string) => {
-    try {
-      setLoading(true);
-      const response = await invoke<DatabaseSpecification[]>(
-        "connect_mongodb",
-        {
-          mongodbUrl,
-        }
-      );
-      setLoading(false);
-      setDatabases(response);
-    } catch (error) {
-      console.error(error);
-    }
-  }, 2000);
-
-  const list_collections = debounce(async (databaseName: string) => {
-    try {
-      setLoading(true);
-      const response = await invoke<CollectionSpecification[]>(
-        "list_collections",
-        {
-          databaseName,
-        }
-      );
-      setLoading(false);
-      setDatabaseCollections((curr) => ({
-        ...curr,
-        [databaseName]: response,
-      }));
-    } catch (error) {
-      console.error(error);
-    }
-  }, 2000);
-
-  const list_documents = debounce(
-    async (
-      databaseName: string,
-      collectionName: string,
-      page: number,
-      perPage: number
-    ) => {
+  const connect_mongodb = useCallback((input: MongodbConnectInput) => {
+    const f = async (input: MongodbConnectInput) => {
       try {
         setLoading(true);
-        const response = await invoke<BsonDocument[]>("list_documents", {
-          databaseName,
-          collectionName,
-          page,
-          perPage,
-        });
+        const response = await invoke<DatabaseSpecification[]>(
+          "connect_mongodb",
+          input
+        );
+        console.log("connect_mongodb", response);
+        setLoading(false);
+        setDatabases(response);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    f(input);
+  }, []);
+
+  const list_collections = useCallback((input: ListCollectionsInput) => {
+    const f = async (input: ListCollectionsInput) => {
+      try {
+        setLoading(true);
+        const response = await invoke<CollectionSpecification[]>(
+          "list_collections",
+          input
+        );
+        console.log("list_collections", response);
+        setLoading(false);
+        setDatabaseCollections((curr) => ({
+          ...curr,
+          [input.databaseName]: response,
+        }));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    f(input);
+  }, []);
+
+  const list_documents = useCallback((input: ListDocumentsInput) => {
+    const f = async (input: ListDocumentsInput) => {
+      try {
+        setLoading(true);
+        const response = await invoke<BsonDocument[]>("list_documents", input);
+        console.log("list_documents", response);
         setLoading(false);
         setCollectionDocuments(response);
       } catch (error) {
         console.error(error);
       }
-    },
-    2000
-  );
+    };
+    f(input);
+  }, []);
 
   return (
     <div>
@@ -114,7 +112,7 @@ const App = () => {
             <div key={idx}>
               <Card>
                 <Card.Body>
-                  <ReactJson src={document} />
+                  <ReactJson src={document} collapsed={1} />
                 </Card.Body>
               </Card>
             </div>

@@ -9,13 +9,16 @@ pub async fn connect_mongodb(
   state: AppArg<'_>,
   mongodb_url: String,
 ) -> Result<Vec<mongodb::results::DatabaseSpecification>, String> {
-  let client = mongodb::sync::Client::with_uri_str(mongodb_url.as_str()).unwrap();
-  let databases = client.list_databases(None, None).unwrap();
-  {
-    let mut handle = state.0.lock().unwrap();
-    *handle = Some(client)
-  };
-  Ok(databases)
+  if let Ok(client) = mongodb::sync::Client::with_uri_str(mongodb_url.as_str()) {
+    let databases = client.list_databases(None, None).unwrap();
+    {
+      let mut handle = state.0.lock().unwrap();
+      *handle = Some(client)
+    };
+    Ok(databases)
+  } else {
+    Err(format!("Cannot connect to {}", mongodb_url))
+  }
 }
 
 #[command]
@@ -26,12 +29,13 @@ pub async fn list_collections(
   let handle = &*state.0.lock().unwrap();
   if let Some(client) = handle {
     let database = client.database(&database_name);
-    let collections = database
+    database
       .list_collections(None, None)
-      .unwrap()
-      .collect::<Result<Vec<_>, _>>()
-      .unwrap();
-    Ok(collections)
+      .and_then(|r| r.collect::<Result<Vec<_>, _>>())
+      .map_err(|err| {
+        eprintln!("list_collections::{}", err);
+        "Unable to open collection".to_string()
+      })
   } else {
     Err("Unable to open database".to_string())
   }
@@ -53,12 +57,17 @@ pub async fn list_documents(
       .limit(per_page)
       .skip((per_page * page) as u64)
       .build();
-    let documents = collections
+    println!("database_name:{}", database_name);
+    println!("collection_name:{}", collection_name);
+    println!("page:{}", page);
+    println!("per_page:{}", per_page);
+    collections
       .find(None, find_options)
-      .unwrap()
-      .collect::<Result<Vec<_>, _>>()
-      .unwrap();
-    Ok(documents)
+      .and_then(|r| r.collect::<Result<Vec<_>, _>>())
+      .map_err(|err| {
+        eprintln!("list_documents::{}", err);
+        "Unable to open collection".to_string()
+      })
   } else {
     Err("Unable to list documents in collection".to_string())
   }
