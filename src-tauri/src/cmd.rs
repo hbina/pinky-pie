@@ -48,6 +48,9 @@ pub async fn list_documents(
   collection_name: String,
   page: i64,
   per_page: i64,
+  documents_filter: mongodb::bson::Document,
+  documents_projection: mongodb::bson::Document,
+  documents_sort: mongodb::bson::Document,
 ) -> Result<Vec<mongodb::bson::Document>, String> {
   let handle = &*state.0.lock().unwrap();
   if let Some(client) = handle {
@@ -56,9 +59,11 @@ pub async fn list_documents(
     let find_options = mongodb::options::FindOptions::builder()
       .limit(per_page)
       .skip((per_page * page) as u64)
+      .projection(documents_projection)
+      .sort(documents_sort)
       .build();
     collections
-      .find(None, find_options)
+      .find(documents_filter, find_options)
       .and_then(|r| r.collect::<Result<Vec<_>, _>>())
       .map_err(|err| {
         eprintln!("list_documents::{}", err);
@@ -70,19 +75,22 @@ pub async fn list_documents(
 }
 
 #[command]
-pub async fn estimated_document_count(
+pub async fn count_documents(
   state: AppArg<'_>,
   database_name: String,
   collection_name: String,
+  documents_filter: mongodb::bson::Document,
 ) -> Result<u64, String> {
   let handle = &*state.0.lock().unwrap();
   if let Some(client) = handle {
     let database = client.database(&database_name);
     let collections = database.collection::<mongodb::bson::Document>(&collection_name);
-    collections.estimated_document_count(None).map_err(|err| {
-      eprintln!("estimated_document_count::{}", err);
-      "Unable to estimated document count in a collection".to_string()
-    })
+    collections
+      .count_documents(documents_filter, None)
+      .map_err(|err| {
+        eprintln!("count_documents::{}", err);
+        "Unable to estimated document count in a collection".to_string()
+      })
   } else {
     Err("Unable to list documents in collection".to_string())
   }

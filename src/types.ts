@@ -24,6 +24,9 @@ export type ListDocumentsInput = Readonly<{
   collectionName: string;
   page: number;
   perPage: number;
+  documentsFilter: Record<string, unknown>;
+  documentsProjection: Record<string, unknown>;
+  documentsSort: Record<string, unknown>;
 }>;
 export type EstimatedDocumentCountInput = Readonly<{
   databaseName: string;

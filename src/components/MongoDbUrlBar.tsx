@@ -2,15 +2,17 @@ import { Button } from "react-bootstrap";
 
 import { ReactSetState, MongodbConnectInput } from "../types";
 
+export type MongodbUrlBar = {
+  url: string;
+  setUrl: ReactSetState<string>;
+  connect_mongodb: (input: MongodbConnectInput) => void;
+};
+
 const MongoDbUrlBar = ({
   url,
   setUrl,
   connect_mongodb,
-}: Readonly<{
-  url: string;
-  setUrl: ReactSetState<string>;
-  connect_mongodb: (input: MongodbConnectInput) => void;
-}>) => {
+}: Readonly<MongodbUrlBar>) => {
   return (
     <div
       style={{

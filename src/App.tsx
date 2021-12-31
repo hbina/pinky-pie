@@ -1,6 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 
 import MongoDbUrlBar from "./components/MongoDbUrlBar";
 import DatabaseCollectionBar from "./components/DatabaseCollectionBar";
@@ -14,6 +14,7 @@ import {
 } from "./types";
 import { Tab, Tabs } from "react-bootstrap";
 import DocumentListing from "./components/DocumentListing";
+import { debounce } from "lodash";
 
 const invoke: <O>(
   name: string,
@@ -24,6 +25,7 @@ const invoke: <O>(
 
 const App = () => {
   const [url, setUrl] = useState("mongodb://localhost:27017");
+  const [urlConnected, setUrlConnected] = useState(false);
   const [databases, setDatabases] = useState<DatabaseSpecification[]>([]);
   const [databaseCollections, setDatabaseCollections] = useState<
     Record<string, CollectionSpecification[]>
@@ -31,8 +33,15 @@ const App = () => {
   const [collectionDocuments, setCollectionDocuments] = useState<
     BsonDocument[]
   >([]);
-  const [estimatedDocumentCount, setEstimatedDocumentCount] = useState(0);
+  const [documentsCount, setDocumentsCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [documentsFilter, setDocumentsFilter] = useState({});
+  const [documentsProjection, setDocumentsProjection] = useState({});
+  const [documentsSort, setDocumentsSort] = useState({});
+  const [databaseName, setDatabaseName] = useState("");
+  const [collectionName, setCollectionName] = useState("");
+  const [perPage] = useState(5);
+  const [page, setPage] = useState(0);
 
   const connect_mongodb = useCallback((input: MongodbConnectInput) => {
     const f = async (input: MongodbConnectInput) => {
@@ -42,9 +51,9 @@ const App = () => {
           "connect_mongodb",
           input
         );
-        console.log("connect_mongodb", response);
         setLoading(false);
         setDatabases(response);
+        setUrlConnected(true);
       } catch (error) {
         console.error(error);
       }
@@ -60,7 +69,6 @@ const App = () => {
           "list_collections",
           input
         );
-        console.log("list_collections", collections);
         setLoading(false);
         setDatabaseCollections((curr) => ({
           ...curr,
@@ -73,48 +81,97 @@ const App = () => {
     f(input);
   }, []);
 
-  const list_documents = useCallback((input: ListDocumentsInput) => {
-    const f = async (input: ListDocumentsInput) => {
-      try {
-        setLoading(true);
-        const documents = await invoke<BsonDocument[]>("list_documents", input);
-        console.log("list_documents", documents);
-        const estimatedDocumentCount = await invoke<number>(
-          "estimated_document_count",
-          input
-        );
-        setLoading(false);
-        setCollectionDocuments(documents);
-        setEstimatedDocumentCount(estimatedDocumentCount);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    f(input);
-  }, []);
+  const list_documents = useMemo(
+    () =>
+      debounce((input: ListDocumentsInput) => {
+        const f = async (input: ListDocumentsInput) => {
+          try {
+            setLoading(true);
+            const documents = await invoke<BsonDocument[]>(
+              "list_documents",
+              input
+            );
+            const estimatedDocumentCount = await invoke<number>(
+              "count_documents",
+              input
+            );
+            setLoading(false);
+            setCollectionDocuments(documents);
+            setDocumentsCount(estimatedDocumentCount);
+          } catch (error) {
+            console.error(error);
+          }
+        };
+        f(input);
+      }, 1000),
+    []
+  );
+
+  useEffect(() => {
+    if (databaseName && collectionName)
+      list_documents({
+        databaseName,
+        collectionName,
+        page,
+        perPage,
+        documentsFilter,
+        documentsProjection,
+        documentsSort,
+      });
+  }, [
+    list_documents,
+    databaseName,
+    collectionName,
+    page,
+    perPage,
+    documentsFilter,
+    documentsProjection,
+    documentsSort,
+  ]);
+
+  useEffect(() => {
+    if (databaseName) list_collections({ databaseName });
+  }, [databaseName, list_collections]);
 
   return (
     <div>
-      <MongoDbUrlBar
-        url={url}
-        setUrl={setUrl}
-        connect_mongodb={connect_mongodb}
-      />
-      <DatabaseCollectionBar
-        databases={databases}
-        databaseCollections={databaseCollections}
-        list_collections={list_collections}
-        list_documents={list_documents}
-        estimatedDocumentCount={estimatedDocumentCount}
-      />
-      <Tabs defaultActiveKey="document_listing_tab">
-        <Tab eventKey="document_listing_tab" title="Documents">
-          <DocumentListing loading={loading} documents={collectionDocuments} />
-        </Tab>
-        <Tab eventKey="document_aggregation_tab" title="Aggregation">
-          <p>hello world</p>
-        </Tab>
-      </Tabs>
+      {!urlConnected ? (
+        <MongoDbUrlBar
+          url={url}
+          setUrl={setUrl}
+          connect_mongodb={connect_mongodb}
+        />
+      ) : (
+        <div>
+          <DatabaseCollectionBar
+            url={url}
+            databases={databases}
+            databaseCollections={databaseCollections}
+            documentsCount={documentsCount}
+            databaseName={databaseName}
+            setDatabaseName={setDatabaseName}
+            collectionName={collectionName}
+            setCollectionName={setCollectionName}
+            page={page}
+            setPage={setPage}
+            perPage={perPage}
+          />
+          <Tabs defaultActiveKey="document_listing_tab">
+            <Tab eventKey="document_listing_tab" title="Documents">
+              <DocumentListing
+                loading={loading}
+                documents={collectionDocuments}
+                setDocumentsFilter={setDocumentsFilter}
+                setDocumentsProjection={setDocumentsProjection}
+                setDocumentsSort={setDocumentsSort}
+              />
+            </Tab>
+            <Tab eventKey="document_aggregation_tab" title="Aggregation">
+              <p>hello world</p>
+            </Tab>
+          </Tabs>
+        </div>
+      )}
     </div>
   );
 };

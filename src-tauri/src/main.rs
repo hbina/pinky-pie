@@ -14,7 +14,7 @@ fn main() {
       cmd::connect_mongodb,
       cmd::list_collections,
       cmd::list_documents,
-      cmd::estimated_document_count
+      cmd::count_documents
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

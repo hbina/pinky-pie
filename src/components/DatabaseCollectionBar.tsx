@@ -1,46 +1,43 @@
-import { useEffect, useState } from "react";
 import { Dropdown, Pagination } from "react-bootstrap";
 
 import {
   CollectionSpecification,
   DatabaseSpecification,
-  ListCollectionsInput,
-  ListDocumentsInput,
+  ReactSetState,
 } from "../types";
 
-const DatabaseCollectionBar = ({
-  databases,
-  databaseCollections,
-  list_collections,
-  list_documents,
-  estimatedDocumentCount,
-}: Readonly<{
+export type DatabaseCollectionBarProp = {
+  url: string;
   databases: DatabaseSpecification[];
   databaseCollections: Record<string, CollectionSpecification[]>;
-  list_collections: (input: ListCollectionsInput) => void;
-  list_documents: (input: ListDocumentsInput) => void;
-  estimatedDocumentCount: number;
-}>) => {
-  const [databaseName, setDatabaseName] = useState("");
-  const [collectionName, setCollectionName] = useState("");
-  const [perPage] = useState(5);
-  const [page, setPage] = useState(0);
+  documentsCount: number;
+  databaseName: string;
+  setDatabaseName: ReactSetState<string>;
+  collectionName: string;
+  setCollectionName: ReactSetState<string>;
+  page: number;
+  setPage: ReactSetState<number>;
+  perPage: number;
+};
 
-  useEffect(() => {
-    if (databaseName && collectionName)
-      list_documents({ databaseName, collectionName, page, perPage });
-  }, [databaseName, collectionName, page, perPage, list_documents]);
-
-  useEffect(() => {
-    if (databaseName) list_collections({ databaseName });
-  }, [databaseName, list_collections]);
-
-  const paginationInfo =
-    databaseName && collectionName
-      ? `Displaying documents ${perPage * page + 1} - ${
-          perPage * (page + 1)
-        } of ${estimatedDocumentCount}`
-      : "";
+const DatabaseCollectionBar = ({
+  url,
+  databases,
+  databaseCollections,
+  documentsCount,
+  databaseName,
+  setDatabaseName,
+  collectionName,
+  setCollectionName,
+  page,
+  setPage,
+  perPage,
+}: Readonly<DatabaseCollectionBarProp>) => {
+  const hidePaginationInfo = databaseName && collectionName ? false : true;
+  const paginationInfo = `${perPage * page + 1} - ${Math.min(
+    perPage * (page + 1),
+    documentsCount
+  )} of ${documentsCount}`;
 
   return (
     <div
@@ -59,12 +56,21 @@ const DatabaseCollectionBar = ({
           padding: "5px",
         }}
       >
+        <input
+          style={{
+            display: "flex",
+            padding: "5px",
+            width: "250px",
+          }}
+          value={url}
+          disabled={true}
+        />
         <Dropdown>
           <Dropdown.Toggle>{databaseName}</Dropdown.Toggle>
           <Dropdown.Menu>
-            {databases.map(({ name }, idx) => (
+            {databases.map(({ name }) => (
               <Dropdown.Item
-                key={idx}
+                key={name}
                 onClick={() => {
                   setDatabaseName(name);
                   setCollectionName("");
@@ -78,8 +84,14 @@ const DatabaseCollectionBar = ({
         <Dropdown>
           <Dropdown.Toggle>{collectionName}</Dropdown.Toggle>
           <Dropdown.Menu>
-            {(databaseCollections[databaseName] ?? []).map(({ name }, idx) => (
-              <Dropdown.Item key={idx} onClick={() => setCollectionName(name)}>
+            {(databaseCollections[databaseName] ?? []).map(({ name }) => (
+              <Dropdown.Item
+                key={name}
+                onClick={() => {
+                  setCollectionName(name);
+                  setPage(0);
+                }}
+              >
                 {name}
               </Dropdown.Item>
             ))}
@@ -87,12 +99,14 @@ const DatabaseCollectionBar = ({
         </Dropdown>
       </div>
       <div
+        hidden={hidePaginationInfo}
         style={{
           display: "flex",
           flexDirection: "row",
           justifyContent: "flex-start",
           columnGap: "5px",
           padding: "5px",
+          alignItems: "center",
         }}
       >
         <p>{paginationInfo}</p>
@@ -100,7 +114,13 @@ const DatabaseCollectionBar = ({
           <Pagination.Prev
             onClick={() => setPage((page) => Math.max(0, page - 1))}
           />
-          <Pagination.Next onClick={() => setPage((page) => page + 1)} />
+          <Pagination.Next
+            onClick={() =>
+              setPage((page) =>
+                Math.min(Math.floor(documentsCount / perPage), page + 1)
+              )
+            }
+          />
         </Pagination>
       </div>
     </div>
