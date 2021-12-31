@@ -14,7 +14,6 @@
     "@types/react-dom": "^17.0.11",
     "bootstrap": "^5.1.3",
     "bootstrap-icons": "^1.7.2",
-    "eslint-plugin-react-hooks": "^4.2.1-rc.0-next-3dc41d8a2-20211223",
     "lodash": "^4.17.21",
     "react": "^17.0.2",
     "react-bootstrap": "^2.0.4",
@@ -35,13 +34,7 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ],
-    "plugins": [
-      "react-hooks"
-    ],
-    "rules": {
-      "react-hooks/exhaustive-deps": "warn"
-    }
+    ]
   },
   "browserslist": {
     "production": [
