@@ -11,10 +11,11 @@ fn main() {
       None,
     ))))
     .invoke_handler(tauri::generate_handler![
-      cmd::connect_mongodb,
-      cmd::list_collections,
-      cmd::list_documents,
-      cmd::count_documents
+      cmd::mongodb_connect,
+      cmd::mongodb_find_colletions,
+      cmd::mongodb_find_documents,
+      cmd::mongodb_count_documents,
+      cmd::mongodb_aggregate_documents
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

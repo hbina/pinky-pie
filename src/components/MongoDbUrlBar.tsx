@@ -5,18 +5,19 @@ import { ReactSetState, MongodbConnectInput } from "../types";
 export type MongodbUrlBar = {
   url: string;
   setUrl: ReactSetState<string>;
-  connect_mongodb: (input: MongodbConnectInput) => void;
+  mongodb_connect: (input: MongodbConnectInput) => void;
 };
 
 const MongoDbUrlBar = ({
   url,
   setUrl,
-  connect_mongodb,
+  mongodb_connect,
 }: Readonly<MongodbUrlBar>) => {
   return (
     <div
       style={{
         display: "flex",
+        height: "50px",
       }}
     >
       <div
@@ -39,13 +40,13 @@ const MongoDbUrlBar = ({
         />
         <Button
           variant="primary"
-          onClick={() => connect_mongodb({ mongodbUrl: url })}
+          onClick={() => mongodb_connect({ mongodbUrl: url })}
         >
           Connect
         </Button>
         <Button
           variant="primary"
-          onClick={() => connect_mongodb({ mongodbUrl: url })}
+          onClick={() => mongodb_connect({ mongodbUrl: url })}
         >
           Refresh
         </Button>

@@ -45,6 +45,7 @@ const DatabaseCollectionBar = ({
         display: "flex",
         flexDirection: "row",
         justifyContent: "space-between",
+        height: "50px",
       }}
     >
       <div

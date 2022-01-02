@@ -5,7 +5,7 @@ pub struct AppState(pub std::sync::Arc<std::sync::Mutex<Option<mongodb::sync::Cl
 pub type AppArg<'a> = tauri::State<'a, AppState>;
 
 #[command]
-pub async fn connect_mongodb(
+pub async fn mongodb_connect(
   state: AppArg<'_>,
   mongodb_url: String,
 ) -> Result<Vec<mongodb::results::DatabaseSpecification>, String> {
@@ -22,7 +22,7 @@ pub async fn connect_mongodb(
 }
 
 #[command]
-pub async fn list_collections(
+pub async fn mongodb_find_colletions(
   state: AppArg<'_>,
   database_name: String,
 ) -> Result<Vec<mongodb::results::CollectionSpecification>, String> {
@@ -33,16 +33,16 @@ pub async fn list_collections(
       .list_collections(None, None)
       .and_then(|r| r.collect::<Result<Vec<_>, _>>())
       .map_err(|err| {
-        eprintln!("list_collections::{}", err);
+        eprintln!("mongodb_find_colletions::{}", err);
         "Unable to open collection".to_string()
       })
   } else {
-    Err("Unable to open database".to_string())
+    Err("No MongoDB client available".to_string())
   }
 }
 
 #[command]
-pub async fn list_documents(
+pub async fn mongodb_find_documents(
   state: AppArg<'_>,
   database_name: String,
   collection_name: String,
@@ -66,16 +66,16 @@ pub async fn list_documents(
       .find(documents_filter, find_options)
       .and_then(|r| r.collect::<Result<Vec<_>, _>>())
       .map_err(|err| {
-        eprintln!("list_documents::{}", err);
+        eprintln!("mongodb_find_documents::{}", err);
         "Unable to open collection".to_string()
       })
   } else {
-    Err("Unable to list documents in collection".to_string())
+    Err("No MongoDB client available".to_string())
   }
 }
 
 #[command]
-pub async fn count_documents(
+pub async fn mongodb_count_documents(
   state: AppArg<'_>,
   database_name: String,
   collection_name: String,
@@ -88,10 +88,34 @@ pub async fn count_documents(
     collections
       .count_documents(documents_filter, None)
       .map_err(|err| {
-        eprintln!("count_documents::{}", err);
+        eprintln!("mongodb_count_documents::{}", err);
         "Unable to estimated document count in a collection".to_string()
       })
   } else {
-    Err("Unable to list documents in collection".to_string())
+    Err("No MongoDB client available".to_string())
+  }
+}
+
+#[command]
+pub async fn mongodb_aggregate_documents(
+  state: AppArg<'_>,
+  database_name: String,
+  collection_name: String,
+  aggregation_stages: Vec<mongodb::bson::Document>,
+) -> Result<Vec<mongodb::bson::Document>, String> {
+  let handle = &*state.0.lock().unwrap();
+  if let Some(client) = handle {
+    let database = client.database(&database_name);
+    let collections = database.collection::<mongodb::bson::Document>(&collection_name);
+    let documents = collections
+      .aggregate(aggregation_stages, None)
+      .and_then(|v| v.collect::<Result<Vec<mongodb::bson::Document>, _>>())
+      .map_err(|err| {
+        eprintln!("mongodb_aggregate_documents::{}", err);
+        "Unable to perform document aggregation in a collection".to_string()
+      });
+    documents
+  } else {
+    Err("No MongoDB client available".to_string())
   }
 }
