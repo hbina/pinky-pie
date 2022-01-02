@@ -32,3 +32,17 @@ export type EstimatedDocumentCountInput = Readonly<{
   databaseName: string;
   collectionName: string;
 }>;
+export type AggregateDocumentsInput = Readonly<{
+  databaseName: string;
+  collectionName: string;
+  stages: Record<string, unknown>[];
+}>;
+
+export type AggregationStages = Readonly<
+  {
+    collapsed: boolean;
+    stageOperation: string;
+    stageBody: string;
+    documents: Record<string, unknown>[];
+  }[]
+>;

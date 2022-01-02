@@ -33,18 +33,13 @@ const DatabaseCollectionBar = ({
   setPage,
   perPage,
 }: Readonly<DatabaseCollectionBarProp>) => {
-  const hidePaginationInfo = databaseName && collectionName ? false : true;
-  const paginationInfo = `${perPage * page + 1} - ${Math.min(
-    perPage * (page + 1),
-    documentsCount
-  )} of ${documentsCount}`;
-
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "row",
         justifyContent: "space-between",
+        height: "50px",
       }}
     >
       <div
@@ -97,31 +92,6 @@ const DatabaseCollectionBar = ({
             ))}
           </Dropdown.Menu>
         </Dropdown>
-      </div>
-      <div
-        hidden={hidePaginationInfo}
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "flex-start",
-          columnGap: "5px",
-          padding: "5px",
-          alignItems: "center",
-        }}
-      >
-        <p>{paginationInfo}</p>
-        <Pagination>
-          <Pagination.Prev
-            onClick={() => setPage((page) => Math.max(0, page - 1))}
-          />
-          <Pagination.Next
-            onClick={() =>
-              setPage((page) =>
-                Math.min(Math.floor(documentsCount / perPage), page + 1)
-              )
-            }
-          />
-        </Pagination>
       </div>
     </div>
   );

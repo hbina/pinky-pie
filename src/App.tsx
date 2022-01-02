@@ -11,14 +11,17 @@ import {
   MongodbConnectInput,
   ListCollectionsInput,
   ListDocumentsInput,
+  AggregationStages,
+  AggregateDocumentsInput,
 } from "./types";
 import { Tab, Tabs } from "react-bootstrap";
 import DocumentListing from "./components/DocumentListing";
-import { debounce } from "lodash";
+import { cloneDeep, debounce } from "lodash";
+import DocumentAggregation from "./components/DocumentAggregation";
 
-const invoke: <O>(
+const invoke: <O, T = Record<string, unknown>>(
   name: string,
-  payload: Record<string, unknown>
+  payload: T
 ) => Promise<O> =
   // @ts-ignore
   window.__TAURI__.invoke;
@@ -30,7 +33,7 @@ const App = () => {
   const [databaseCollections, setDatabaseCollections] = useState<
     Record<string, CollectionSpecification[]>
   >({});
-  const [collectionDocuments, setCollectionDocuments] = useState<
+  const [findDocumentsResult, setFindDocumentsResult] = useState<
     BsonDocument[]
   >([]);
   const [documentsCount, setDocumentsCount] = useState(0);
@@ -42,13 +45,21 @@ const App = () => {
   const [collectionName, setCollectionName] = useState("");
   const [perPage] = useState(5);
   const [page, setPage] = useState(0);
+  const [aggregationData, setAggregationData] = useState<AggregationStages>([
+    {
+      collapsed: false,
+      stageOperation: "$match",
+      stageBody: "{}",
+      documents: [],
+    },
+  ]);
 
-  const connect_mongodb = useCallback((input: MongodbConnectInput) => {
+  const mongodb_connect = useCallback((input: MongodbConnectInput) => {
     const f = async (input: MongodbConnectInput) => {
       try {
         setLoading(true);
         const response = await invoke<DatabaseSpecification[]>(
-          "connect_mongodb",
+          "mongodb_connect",
           input
         );
         setLoading(false);
@@ -61,17 +72,17 @@ const App = () => {
     f(input);
   }, []);
 
-  const list_collections = useCallback((input: ListCollectionsInput) => {
+  const mongodb_find_colletions = useCallback((input: ListCollectionsInput) => {
     const f = async (input: ListCollectionsInput) => {
       try {
         setLoading(true);
         const collections = await invoke<CollectionSpecification[]>(
-          "list_collections",
+          "mongodb_find_colletions",
           input
         );
         setLoading(false);
         setDatabaseCollections((curr) => ({
-          ...curr,
+          ...cloneDeep(curr),
           [input.databaseName]: collections,
         }));
       } catch (error) {
@@ -81,23 +92,22 @@ const App = () => {
     f(input);
   }, []);
 
-  const list_documents = useMemo(
+  const mongodb_find_documents = useMemo(
     () =>
       debounce((input: ListDocumentsInput) => {
         const f = async (input: ListDocumentsInput) => {
           try {
-            setLoading(true);
             const documents = await invoke<BsonDocument[]>(
-              "list_documents",
+              "mongodb_find_documents",
               input
             );
-            const estimatedDocumentCount = await invoke<number>(
-              "count_documents",
+            const documentCount = await invoke<number>(
+              "mongodb_count_documents",
               input
             );
             setLoading(false);
-            setCollectionDocuments(documents);
-            setDocumentsCount(estimatedDocumentCount);
+            setFindDocumentsResult(documents);
+            setDocumentsCount(documentCount);
           } catch (error) {
             console.error(error);
           }
@@ -107,9 +117,65 @@ const App = () => {
     []
   );
 
+  const mongodb_aggregate_documents = useMemo(
+    () =>
+      debounce(() => {
+        const f = async () => {
+          try {
+            const result = await Promise.all(
+              aggregationData
+                .map((_a, idx) =>
+                  aggregationData.filter((_b, idx2) => idx2 <= idx)
+                )
+                .map(async (stages, idx) => {
+                  console.log("stages", stages);
+                  if (stages.find((stage) => stage.stageOperation === "")) {
+                    return {
+                      collapsed: false,
+                      stageOperation: stages[stages.length - 1].stageOperation,
+                      stageBody: stages[stages.length - 1].stageBody,
+                      documents: [],
+                    };
+                  } else {
+                    const aggregationStages = stages
+                      .filter(({ stageOperation }) => stageOperation !== "")
+                      .map(({ stageOperation, stageBody }) => ({
+                        [stageOperation]: JSON.parse(stageBody),
+                      }));
+                    console.log("aggregationStages", aggregationStages);
+                    const documents = await invoke<BsonDocument[]>(
+                      "mongodb_aggregate_documents",
+                      {
+                        databaseName,
+                        collectionName,
+                        aggregationStages: [
+                          { $limit: 2 },
+                          ...aggregationStages,
+                        ],
+                      }
+                    );
+                    return {
+                      collapsed: false,
+                      stageOperation: stages[stages.length - 1].stageOperation,
+                      stageBody: stages[stages.length - 1].stageBody,
+                      documents,
+                    };
+                  }
+                })
+            );
+            setAggregationData(result);
+          } catch (error) {
+            console.error("mongodb_aggregate_documents", error);
+          }
+        };
+        f();
+      }, 1000),
+    [aggregationData, collectionName, databaseName]
+  );
+
   useEffect(() => {
     if (databaseName && collectionName)
-      list_documents({
+      mongodb_find_documents({
         databaseName,
         collectionName,
         page,
@@ -119,7 +185,7 @@ const App = () => {
         documentsSort,
       });
   }, [
-    list_documents,
+    mongodb_find_documents,
     databaseName,
     collectionName,
     page,
@@ -130,8 +196,8 @@ const App = () => {
   ]);
 
   useEffect(() => {
-    if (databaseName) list_collections({ databaseName });
-  }, [databaseName, list_collections]);
+    if (databaseName) mongodb_find_colletions({ databaseName });
+  }, [databaseName, mongodb_find_colletions]);
 
   return (
     <div>
@@ -139,7 +205,7 @@ const App = () => {
         <MongoDbUrlBar
           url={url}
           setUrl={setUrl}
-          connect_mongodb={connect_mongodb}
+          mongodb_connect={mongodb_connect}
         />
       ) : (
         <div>
@@ -159,15 +225,26 @@ const App = () => {
           <Tabs defaultActiveKey="document_listing_tab">
             <Tab eventKey="document_listing_tab" title="Documents">
               <DocumentListing
+                databaseName={databaseName}
+                collectionName={collectionName}
+                perPage={perPage}
+                page={page}
+                setPage={setPage}
+                documentsCount={documentsCount}
                 loading={loading}
-                documents={collectionDocuments}
+                setLoading={setLoading}
+                documents={findDocumentsResult}
                 setDocumentsFilter={setDocumentsFilter}
                 setDocumentsProjection={setDocumentsProjection}
                 setDocumentsSort={setDocumentsSort}
               />
             </Tab>
             <Tab eventKey="document_aggregation_tab" title="Aggregation">
-              <p>hello world</p>
+              <DocumentAggregation
+                aggregationData={aggregationData}
+                setAggregationData={setAggregationData}
+                mongodb_aggregate_documents={mongodb_aggregate_documents}
+              />
             </Tab>
           </Tabs>
         </div>
