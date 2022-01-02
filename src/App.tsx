@@ -16,7 +16,7 @@ import {
 } from "./types";
 import { Tab, Tabs } from "react-bootstrap";
 import DocumentListing from "./components/DocumentListing";
-import { debounce } from "lodash";
+import { cloneDeep, debounce } from "lodash";
 import DocumentAggregation from "./components/DocumentAggregation";
 
 const invoke: <O, T = Record<string, unknown>>(
@@ -47,6 +47,7 @@ const App = () => {
   const [page, setPage] = useState(0);
   const [aggregationData, setAggregationData] = useState<AggregationStages>([
     {
+      collapsed: false,
       stageOperation: "$match",
       stageBody: "{}",
       documents: [],
@@ -81,7 +82,7 @@ const App = () => {
         );
         setLoading(false);
         setDatabaseCollections((curr) => ({
-          ...curr,
+          ...cloneDeep(curr),
           [input.databaseName]: collections,
         }));
       } catch (error) {
@@ -96,7 +97,6 @@ const App = () => {
       debounce((input: ListDocumentsInput) => {
         const f = async (input: ListDocumentsInput) => {
           try {
-            setLoading(true);
             const documents = await invoke<BsonDocument[]>(
               "mongodb_find_documents",
               input
@@ -131,6 +131,7 @@ const App = () => {
                   console.log("stages", stages);
                   if (stages.find((stage) => stage.stageOperation === "")) {
                     return {
+                      collapsed: false,
                       stageOperation: stages[stages.length - 1].stageOperation,
                       stageBody: stages[stages.length - 1].stageBody,
                       documents: [],
@@ -154,6 +155,7 @@ const App = () => {
                       }
                     );
                     return {
+                      collapsed: false,
                       stageOperation: stages[stages.length - 1].stageOperation,
                       stageBody: stages[stages.length - 1].stageBody,
                       documents,
@@ -223,7 +225,14 @@ const App = () => {
           <Tabs defaultActiveKey="document_listing_tab">
             <Tab eventKey="document_listing_tab" title="Documents">
               <DocumentListing
+                databaseName={databaseName}
+                collectionName={collectionName}
+                perPage={perPage}
+                page={page}
+                setPage={setPage}
+                documentsCount={documentsCount}
                 loading={loading}
+                setLoading={setLoading}
                 documents={findDocumentsResult}
                 setDocumentsFilter={setDocumentsFilter}
                 setDocumentsProjection={setDocumentsProjection}

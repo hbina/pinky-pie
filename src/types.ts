@@ -40,6 +40,7 @@ export type AggregateDocumentsInput = Readonly<{
 
 export type AggregationStages = Readonly<
   {
+    collapsed: boolean;
     stageOperation: string;
     stageBody: string;
     documents: Record<string, unknown>[];
