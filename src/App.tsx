@@ -45,6 +45,7 @@ const App = () => {
   const [collectionName, setCollectionName] = useState("");
   const [perPage, setPerPage] = useState(5);
   const [page, setPage] = useState(0);
+  const [jsonDepth, setJsonDepth] = useState(1);
   const [aggregationData, setAggregationData] = useState<AggregationStages>([
     {
       collapsed: false,
@@ -234,6 +235,8 @@ const App = () => {
               setPerPage={setPerPage}
               page={page}
               setPage={setPage}
+              jsonDepth={jsonDepth}
+              setJsonDepth={setJsonDepth}
               documentsCount={documentsCount}
               loading={loading}
               setLoading={setLoading}
