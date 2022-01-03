@@ -26,8 +26,7 @@ export const DocumentAggregation = ({
         display: "flex",
         flexDirection: "column",
         rowGap: "10px",
-        padding: "5px",
-        overflowY: "auto",
+        paddingTop: "5px",
         // TODO: This is mostly a hack
         minHeight: `${Math.max(0, height - 100)}px`,
       }}

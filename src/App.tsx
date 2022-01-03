@@ -43,7 +43,7 @@ const App = () => {
   const [documentsSort, setDocumentsSort] = useState({});
   const [databaseName, setDatabaseName] = useState("");
   const [collectionName, setCollectionName] = useState("");
-  const [perPage] = useState(5);
+  const [perPage, setPerPage] = useState(5);
   const [page, setPage] = useState(0);
   const [aggregationData, setAggregationData] = useState<AggregationStages>([
     {
@@ -200,55 +200,58 @@ const App = () => {
   }, [databaseName, mongodb_find_colletions]);
 
   return (
-    <div>
-      {!urlConnected ? (
-        <MongoDbUrlBar
-          url={url}
-          setUrl={setUrl}
-          mongodb_connect={mongodb_connect}
-        />
-      ) : (
-        <div>
-          <DatabaseCollectionBar
-            url={url}
-            databases={databases}
-            databaseCollections={databaseCollections}
-            documentsCount={documentsCount}
-            databaseName={databaseName}
-            setDatabaseName={setDatabaseName}
-            collectionName={collectionName}
-            setCollectionName={setCollectionName}
-            page={page}
-            setPage={setPage}
-            perPage={perPage}
-          />
-          <Tabs defaultActiveKey="document_listing_tab">
-            <Tab eventKey="document_listing_tab" title="Documents">
-              <DocumentListing
-                databaseName={databaseName}
-                collectionName={collectionName}
-                perPage={perPage}
-                page={page}
-                setPage={setPage}
-                documentsCount={documentsCount}
-                loading={loading}
-                setLoading={setLoading}
-                documents={findDocumentsResult}
-                setDocumentsFilter={setDocumentsFilter}
-                setDocumentsProjection={setDocumentsProjection}
-                setDocumentsSort={setDocumentsSort}
-              />
-            </Tab>
-            <Tab eventKey="document_aggregation_tab" title="Aggregation">
-              <DocumentAggregation
-                aggregationData={aggregationData}
-                setAggregationData={setAggregationData}
-                mongodb_aggregate_documents={mongodb_aggregate_documents}
-              />
-            </Tab>
-          </Tabs>
-        </div>
-      )}
+    <div
+      style={{
+        display: "flex",
+        padding: "5px",
+        rowGap: "5px",
+        flexDirection: "column",
+      }}
+    >
+      <MongoDbUrlBar
+        url={url}
+        setUrl={setUrl}
+        urlConnected={urlConnected}
+        mongodb_connect={mongodb_connect}
+        databases={databases}
+        databaseCollections={databaseCollections}
+        documentsCount={documentsCount}
+        databaseName={databaseName}
+        setDatabaseName={setDatabaseName}
+        collectionName={collectionName}
+        setCollectionName={setCollectionName}
+        page={page}
+        setPage={setPage}
+        perPage={perPage}
+      />
+      <div>
+        <Tabs defaultActiveKey="document_listing_tab">
+          <Tab eventKey="document_listing_tab" title="Documents">
+            <DocumentListing
+              databaseName={databaseName}
+              collectionName={collectionName}
+              perPage={perPage}
+              setPerPage={setPerPage}
+              page={page}
+              setPage={setPage}
+              documentsCount={documentsCount}
+              loading={loading}
+              setLoading={setLoading}
+              documents={findDocumentsResult}
+              setDocumentsFilter={setDocumentsFilter}
+              setDocumentsProjection={setDocumentsProjection}
+              setDocumentsSort={setDocumentsSort}
+            />
+          </Tab>
+          <Tab eventKey="document_aggregation_tab" title="Aggregation">
+            <DocumentAggregation
+              aggregationData={aggregationData}
+              setAggregationData={setAggregationData}
+              mongodb_aggregate_documents={mongodb_aggregate_documents}
+            />
+          </Tab>
+        </Tabs>
+      </div>
     </div>
   );
 };
