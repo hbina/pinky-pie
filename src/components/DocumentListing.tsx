@@ -21,6 +21,8 @@ const DocumentListing = ({
   setPerPage,
   page,
   setPage,
+  jsonDepth,
+  setJsonDepth,
   documentsCount,
   loading,
   setLoading,
@@ -35,6 +37,8 @@ const DocumentListing = ({
   setPerPage: ReactSetState<number>;
   page: number;
   setPage: ReactSetState<number>;
+  jsonDepth: number;
+  setJsonDepth: ReactSetState<number>;
   documentsCount: number;
   loading: boolean;
   setLoading: ReactSetState<boolean>;
@@ -104,8 +108,8 @@ const DocumentListing = ({
               <Form.Control
                 required
                 type="number"
-                defaultValue={page}
-                onChange={(v) => setPage(parseInt(v.target.value))}
+                onChange={(v) => setPage(Math.max(0, parseInt(v.target.value)))}
+                value={page}
               />
             </div>
           </div>
@@ -132,8 +136,41 @@ const DocumentListing = ({
               <Form.Control
                 required
                 type="number"
-                defaultValue={perPage}
-                onChange={(v) => setPerPage(parseInt(v.target.value))}
+                onChange={(v) =>
+                  setPerPage(Math.max(0, parseInt(v.target.value)))
+                }
+                value={perPage}
+              />
+            </div>
+          </div>
+        </Form.Group>
+        <Form.Group
+          style={{
+            display: "flex",
+            flexDirection: "row",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+              }}
+            >
+              <InputGroup.Text>Depth</InputGroup.Text>
+              <Form.Control
+                required
+                type="number"
+                defaultValue={jsonDepth}
+                onChange={(v) =>
+                  setJsonDepth(Math.max(0, parseInt(v.target.value)))
+                }
+                value={jsonDepth}
               />
             </div>
           </div>
@@ -252,7 +289,7 @@ const DocumentListing = ({
               <div key={idx}>
                 <Card>
                   <Card.Body>
-                    <ReactJson src={document} collapsed={1} />
+                    <ReactJson src={document} collapsed={jsonDepth} />
                   </Card.Body>
                 </Card>
               </div>
