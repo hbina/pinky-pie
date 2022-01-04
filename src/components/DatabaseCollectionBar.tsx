@@ -1,5 +1,3 @@
-import { Dropdown, Pagination } from "react-bootstrap";
-
 import {
   CollectionSpecification,
   DatabaseSpecification,

@@ -1,13 +1,8 @@
 import { cloneDeep, DebouncedFunc } from "lodash";
 import { Button, Card, Dropdown } from "react-bootstrap";
-import DropdownItem from "react-bootstrap/esm/DropdownItem";
 import ReactJson from "react-json-view";
 
-import {
-  AggregateDocumentsInput,
-  AggregationStages,
-  ReactSetState,
-} from "../types";
+import { AggregationStages, ReactSetState } from "../types";
 import { useWindowDimensions } from "../util";
 
 export const DocumentAggregation = ({
@@ -226,11 +221,15 @@ export const DocumentAggregation = ({
                       >
                         <Card.Body>
                           <ReactJson
-                            style={{
-                              display: "flex",
-                            }}
+                            name={false}
                             src={document}
                             collapsed={1}
+                            iconStyle="square"
+                            indentWidth={2}
+                            displayObjectSize={false}
+                            displayDataTypes={false}
+                            enableClipboard={false}
+                            sortKeys={true}
                           />
                         </Card.Body>
                       </Card>

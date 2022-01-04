@@ -7,9 +7,6 @@ import {
   FormControl,
   Pagination,
   Form,
-  Row,
-  Col,
-  Button,
 } from "react-bootstrap";
 
 import { BsonDocument, ReactSetState } from "../types";
@@ -108,7 +105,10 @@ const DocumentListing = ({
               <Form.Control
                 required
                 type="number"
-                onChange={(v) => setPage(Math.max(0, parseInt(v.target.value)))}
+                onChange={(v) => {
+                  setLoading(true);
+                  setPage(Math.max(0, parseInt(v.target.value)));
+                }}
                 value={page}
               />
             </div>
@@ -136,9 +136,10 @@ const DocumentListing = ({
               <Form.Control
                 required
                 type="number"
-                onChange={(v) =>
-                  setPerPage(Math.max(0, parseInt(v.target.value)))
-                }
+                onChange={(v) => {
+                  setLoading(true);
+                  setPerPage(Math.max(0, parseInt(v.target.value)));
+                }}
                 value={perPage}
               />
             </div>
@@ -289,7 +290,15 @@ const DocumentListing = ({
               <div key={idx}>
                 <Card>
                   <Card.Body>
-                    <ReactJson src={document} collapsed={jsonDepth} />
+                    <ReactJson
+                      name={false}
+                      src={document}
+                      collapsed={jsonDepth}
+                      iconStyle="square"
+                      indentWidth={2}
+                      enableClipboard={false}
+                      sortKeys={true}
+                    />
                   </Card.Body>
                 </Card>
               </div>
