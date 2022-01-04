@@ -225,7 +225,7 @@ const App = () => {
         setPage={setPage}
         perPage={perPage}
       />
-      <div>
+      <div hidden={databaseName && collectionName ? false : true}>
         <Tabs defaultActiveKey="document_listing_tab">
           <Tab eventKey="document_listing_tab" title="Documents">
             <DocumentListing

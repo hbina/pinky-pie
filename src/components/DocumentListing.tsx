@@ -60,8 +60,6 @@ const DocumentListing = ({
     setValidated(true);
   };
 
-  const hidePaginationInfo = databaseName && collectionName ? false : true;
-
   return (
     <div
       style={{
@@ -234,7 +232,6 @@ const DocumentListing = ({
           </InputGroup>
         </div>
         <div
-          hidden={hidePaginationInfo}
           style={{
             display: "flex",
             flexGrow: 1,
