@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import { cloneDeep, chain } from "lodash";
 import { useState } from "react";
 import {
   Button,
@@ -15,7 +15,6 @@ import { AggregationStageInput, AggregationStageOutput } from "../types";
 import { useWindowDimensions } from "../util";
 
 export const useAggregateTabState = () => {
-  const [loading, setLoading] = useState(false);
   const [sampleCount, setSampleCount] = useState(2);
   const [stagesInput, setStagesInput] = useState<AggregationStageInput[]>([
     {
@@ -25,12 +24,13 @@ export const useAggregateTabState = () => {
     },
   ]);
   const [stagesOutput, setStagesOutput] = useState<AggregationStageOutput[]>([
-    { documents: [] },
+    {
+      loading: false,
+      documents: [],
+    },
   ]);
 
   return {
-    loading,
-    setLoading,
     sampleCount,
     setSampleCount,
     stagesInput,
@@ -48,8 +48,6 @@ export const AggregateTab = ({
       stagesInput,
       setStagesInput,
       stagesOutput,
-      loading,
-      setLoading,
       sampleCount,
       setSampleCount,
     },
@@ -120,7 +118,9 @@ export const AggregateTab = ({
                 <Form.Control
                   required
                   type="number"
-                  disabled={loading}
+                  disabled={chain(stagesOutput)
+                    .some((s) => s.loading)
+                    .value()}
                   onChange={(v) =>
                     setSampleCount(Math.max(0, parseInt(v.target.value)))
                   }
@@ -130,14 +130,21 @@ export const AggregateTab = ({
             </div>
           </Form.Group>
           <Button
-            disabled={loading}
+            disabled={chain(stagesOutput)
+              .some((s) => s.loading)
+              .value()}
             onClick={() => {
-              setLoading(true);
-              mongodb_aggregate_documents({
-                databaseName: connectionData.databaseName,
-                collectionName: connectionData.collectionName,
-                stages: stagesInput,
-              });
+              stagesInput
+                .map((_a, idx) => stagesInput.filter((_b, idx2) => idx2 <= idx))
+                .forEach((stages, idx) => {
+                  mongodb_aggregate_documents({
+                    idx,
+                    sampleCount,
+                    databaseName: connectionData.databaseName,
+                    collectionName: connectionData.collectionName,
+                    stages,
+                  });
+                });
             }}
           >
             Refresh
@@ -146,233 +153,238 @@ export const AggregateTab = ({
       </div>
       {stagesInput
         .map((l, i) => ({ ...l, ...stagesOutput[i] }))
-        .map(({ collapsed, stageOperation, stageBody, documents }, rowIdx) => (
-          <div
-            key={rowIdx}
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              columnGap: "10px",
-            }}
-          >
+        .map(
+          (
+            { collapsed, stageOperation, stageBody, documents, loading },
+            rowIdx
+          ) => (
             <div
+              key={rowIdx}
               style={{
                 display: "flex",
-                flexDirection: "column",
+                flexDirection: "row",
+                columnGap: "10px",
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingBottom: "5px",
-                  minWidth: "400px",
+                  flexDirection: "column",
                 }}
               >
                 <div
                   style={{
                     display: "flex",
                     flexDirection: "row",
-                    columnGap: "1px",
+                    justifyContent: "space-between",
+                    paddingBottom: "5px",
+                    minWidth: "400px",
                   }}
                 >
-                  <Button
-                    onClick={() =>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      columnGap: "1px",
+                    }}
+                  >
+                    <Button
+                      onClick={() =>
+                        setStagesInput((stages) => {
+                          const copy = cloneDeep(stages);
+                          copy[rowIdx].collapsed = copy[rowIdx].collapsed
+                            ? false
+                            : true;
+                          return copy;
+                        })
+                      }
+                    >
+                      {collapsed ? "Expand" : "Collapse"}
+                    </Button>
+                    <Dropdown>
+                      <Dropdown.Toggle variant="success" id="dropdown-basic">
+                        {stageOperation || "$match"}
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu
+                        style={{
+                          maxHeight: "500px",
+                          overflowY: "auto",
+                        }}
+                      >
+                        {[
+                          "$addFields",
+                          "$bucket",
+                          "$bucketAuto",
+                          "$collStats",
+                          "$count",
+                          "$documents",
+                          "$facet",
+                          "$geoNear",
+                          "$graphLookup",
+                          "$group",
+                          "$indexStats",
+                          "$limit",
+                          "$lookup",
+                          "$match",
+                          "$merge",
+                          "$out",
+                          "$project",
+                          "$redact",
+                          "$replaceWidth",
+                          "$replaceRoot",
+                          "$sample",
+                          "$search",
+                          "$searchMeta",
+                          "$set",
+                          "$skip",
+                          "$sort",
+                          "$sortByCount",
+                          "$unionWidth",
+                          "$unset",
+                          "$unwind",
+                        ].map((name) => (
+                          <Dropdown.Item
+                            eventKey="1"
+                            onClick={() =>
+                              setStagesInput((stages) => {
+                                const copy = cloneDeep(stages);
+                                copy[rowIdx].stageOperation = name;
+                                return copy;
+                              })
+                            }
+                          >
+                            {name}
+                          </Dropdown.Item>
+                        ))}
+                      </Dropdown.Menu>
+                    </Dropdown>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      columnGap: "1px",
+                    }}
+                  >
+                    <Button
+                      onClick={() =>
+                        setStagesInput((stages) =>
+                          stages.filter((v, idx) => idx !== rowIdx)
+                        )
+                      }
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        setStagesInput((stages) => {
+                          const leftCopy = stages.filter(
+                            (v, idx) => idx <= rowIdx
+                          );
+                          const rightCopy = stages.filter(
+                            (v, idx) => idx > rowIdx
+                          );
+                          return [
+                            ...leftCopy,
+                            {
+                              collapsed: false,
+                              stageOperation: "$match",
+                              stageBody: "{}",
+                              documents: [],
+                            },
+                            ...rightCopy,
+                          ];
+                        })
+                      }
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+                {!collapsed && (
+                  <textarea
+                    style={{
+                      display: "flex",
+                    }}
+                    onChange={(value) =>
                       setStagesInput((stages) => {
                         const copy = cloneDeep(stages);
-                        copy[rowIdx].collapsed = copy[rowIdx].collapsed
-                          ? false
-                          : true;
+                        try {
+                          const json = JSON.stringify(
+                            JSON.parse(value.target.value)
+                          );
+                          copy[rowIdx].stageBody = json;
+                        } catch (e) {
+                          copy[rowIdx].stageBody = value.target.value;
+                        }
                         return copy;
                       })
                     }
-                  >
-                    {collapsed ? "Expand" : "Collapse"}
-                  </Button>
-                  <Dropdown>
-                    <Dropdown.Toggle variant="success" id="dropdown-basic">
-                      {stageOperation || "$match"}
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu
-                      style={{
-                        maxHeight: "500px",
-                        overflowY: "auto",
-                      }}
-                    >
-                      {[
-                        "$addFields",
-                        "$bucket",
-                        "$bucketAuto",
-                        "$collStats",
-                        "$count",
-                        "$documents",
-                        "$facet",
-                        "$geoNear",
-                        "$graphLookup",
-                        "$group",
-                        "$indexStats",
-                        "$limit",
-                        "$lookup",
-                        "$match",
-                        "$merge",
-                        "$out",
-                        "$project",
-                        "$redact",
-                        "$replaceWidth",
-                        "$replaceRoot",
-                        "$sample",
-                        "$search",
-                        "$searchMeta",
-                        "$set",
-                        "$skip",
-                        "$sort",
-                        "$sortByCount",
-                        "$unionWidth",
-                        "$unset",
-                        "$unwind",
-                      ].map((name) => (
-                        <Dropdown.Item
-                          eventKey="1"
-                          onClick={() =>
-                            setStagesInput((stages) => {
-                              const copy = cloneDeep(stages);
-                              copy[rowIdx].stageOperation = name;
-                              return copy;
-                            })
-                          }
-                        >
-                          {name}
-                        </Dropdown.Item>
-                      ))}
-                    </Dropdown.Menu>
-                  </Dropdown>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    columnGap: "1px",
-                  }}
-                >
-                  <Button
-                    onClick={() =>
-                      setStagesInput((stages) =>
-                        stages.filter((v, idx) => idx !== rowIdx)
-                      )
-                    }
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      setStagesInput((stages) => {
-                        const leftCopy = stages.filter(
-                          (v, idx) => idx <= rowIdx
-                        );
-                        const rightCopy = stages.filter(
-                          (v, idx) => idx > rowIdx
-                        );
-                        return [
-                          ...cloneDeep(leftCopy),
-                          {
-                            collapsed: false,
-                            stageOperation: "$match",
-                            stageBody: "{}",
-                            documents: [],
-                          },
-                          ...cloneDeep(rightCopy),
-                        ];
-                      })
-                    }
-                  >
-                    +
-                  </Button>
-                </div>
+                    value={stageBody}
+                  />
+                )}
               </div>
               {!collapsed && (
-                <textarea
-                  style={{
-                    display: "flex",
-                  }}
-                  onChange={(value) =>
-                    setStagesInput((stages) => {
-                      const copy = cloneDeep(stages);
-                      try {
-                        const json = JSON.stringify(
-                          JSON.parse(value.target.value)
-                        );
-                        copy[rowIdx].stageBody = json;
-                      } catch (e) {
-                        copy[rowIdx].stageBody = value.target.value;
-                      }
-                      return copy;
-                    })
-                  }
-                  value={stageBody}
-                />
-              )}
-            </div>
-            {!collapsed && (
-              <div key={rowIdx}>
-                {loading ? (
-                  <Spinner animation="border" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </Spinner>
-                ) : (
-                  <div>
-                    {documents.length === 0 ? (
-                      <div>No documents found</div>
-                    ) : (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          overflowX: "auto",
-                          columnGap: "5px",
-                        }}
-                      >
-                        {documents.map((document, colIdx) => (
-                          <div
-                            key={colIdx}
-                            style={{
-                              display: "flex",
-                            }}
-                          >
-                            <Card
+                <div key={rowIdx}>
+                  {loading ? (
+                    <Spinner animation="border" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </Spinner>
+                  ) : (
+                    <div>
+                      {documents.length === 0 ? (
+                        <div>No documents found</div>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            overflowX: "auto",
+                            columnGap: "5px",
+                          }}
+                        >
+                          {documents.map((document, colIdx) => (
+                            <div
+                              key={colIdx}
                               style={{
                                 display: "flex",
                               }}
                             >
-                              <Card.Body>
-                                <ReactJson
-                                  name={false}
-                                  src={document}
-                                  collapsed={1}
-                                  iconStyle="square"
-                                  indentWidth={2}
-                                  displayObjectSize={false}
-                                  displayDataTypes={false}
-                                  enableClipboard={false}
-                                  sortKeys={true}
-                                />
-                              </Card.Body>
-                            </Card>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+                              <Card
+                                style={{
+                                  display: "flex",
+                                }}
+                              >
+                                <Card.Body>
+                                  <ReactJson
+                                    name={false}
+                                    src={document}
+                                    collapsed={1}
+                                    iconStyle="square"
+                                    indentWidth={2}
+                                    displayObjectSize={false}
+                                    displayDataTypes={false}
+                                    enableClipboard={false}
+                                    sortKeys={true}
+                                  />
+                                </Card.Body>
+                              </Card>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        )}
       <Button
         onClick={() => {
           setStagesInput((stages) => {
             const copy = [
-              ...cloneDeep(stages),
+              ...stages,
               {
                 collapsed: false,
                 stageOperation: "$match",

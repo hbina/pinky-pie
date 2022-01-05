@@ -33,9 +33,11 @@ export type MongodbDocumentCountInput = Readonly<{
   collectionName: string;
 }>;
 export type MongodbAggregateDocumentsInput = Readonly<{
+  idx: number;
+  sampleCount: number;
   databaseName: string;
   collectionName: string;
-  stages: Record<string, unknown>[];
+  stages: AggregationStageInput[];
 }>;
 
 export type AggregationStageInput = {
@@ -45,6 +47,7 @@ export type AggregationStageInput = {
 };
 
 export type AggregationStageOutput = {
+  loading: boolean;
   documents: Record<string, unknown>[];
 };
 

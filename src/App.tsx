@@ -1,6 +1,7 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import { Tab, Tabs } from "react-bootstrap";
+import { cloneDeep } from "lodash";
 
 import {
   DatabaseSpecification,
@@ -104,49 +105,51 @@ export const useAppState = () => {
   ) => {
     const f = async (input: MongodbAggregateDocumentsInput) => {
       try {
-        aggregateTab.setLoading(true);
-        if (aggregateTab.sampleCount > 0) {
-          const result = await Promise.all(
-            aggregateTab.stagesInput
-              .map((_a, idx) =>
-                aggregateTab.stagesInput.filter((_b, idx2) => idx2 <= idx)
-              )
-              .map(async (stages) => {
-                const aggregationStages = stages.map(
-                  ({ stageOperation, stageBody }) => ({
-                    [stageOperation]: JSON.parse(stageBody),
-                  })
-                );
-                const documents = await invoke<
-                  BsonDocument[],
-                  MongodbAggregateDocumentsInput
-                >("mongodb_aggregate_documents", {
-                  databaseName: connectionData.databaseName,
-                  collectionName: connectionData.collectionName,
-                  stages: [
-                    { $limit: aggregateTab.sampleCount },
-                    ...aggregationStages,
-                  ],
-                });
-                return {
-                  documents,
-                };
-              })
-          );
-          aggregateTab.setLoading(false);
-          aggregateTab.setStagesOutput(result);
+        aggregateTab.setStagesOutput((stagesOutput) => {
+          const copy = cloneDeep(stagesOutput);
+          copy[input.idx] = {
+            loading: true,
+            documents: [],
+          };
+          return copy;
+        });
+        if (input.sampleCount > 0) {
+          const documents = await invoke<
+            BsonDocument[],
+            {
+              databaseName: string;
+              collectionName: string;
+              stages: Record<string, unknown>[];
+            }
+          >("mongodb_aggregate_documents", {
+            databaseName: input.databaseName,
+            collectionName: input.collectionName,
+            stages: [
+              {
+                $limit: input.sampleCount,
+              },
+              ...input.stages.map(({ stageBody, stageOperation }) => ({
+                [stageOperation]: JSON.parse(stageBody),
+              })),
+            ],
+          });
+          aggregateTab.setStagesOutput((stagesOutput) => {
+            const copy = cloneDeep(stagesOutput);
+            copy[input.idx] = {
+              loading: false,
+              documents,
+            };
+            return copy;
+          });
         } else {
-          aggregateTab.setLoading(false);
           aggregateTab.setStagesOutput((stages) =>
-            stages.map((d) => ({
-              ...d,
+            stages.map((s) => ({
+              loading: false,
               documents: [],
             }))
           );
         }
-      } catch (error) {
-        console.error("mongodb_aggregate_documents", error);
-      }
+      } catch (e) {}
     };
     f(input);
   };
