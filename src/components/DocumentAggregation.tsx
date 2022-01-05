@@ -1,20 +1,73 @@
-import { cloneDeep, DebouncedFunc } from "lodash";
-import { Button, Card, Dropdown } from "react-bootstrap";
+import { cloneDeep } from "lodash";
+import { useState } from "react";
+import {
+  Button,
+  Card,
+  Dropdown,
+  Form,
+  InputGroup,
+  Spinner,
+} from "react-bootstrap";
 import ReactJson from "react-json-view";
+import { AppState } from "../App";
 
-import { AggregationStages, ReactSetState } from "../types";
+import { AggregationStages } from "../types";
 import { useWindowDimensions } from "../util";
 
+export const useAggregateTabState = () => {
+  const [loading, setLoading] = useState(false);
+  const [sampleCount, setSampleCount] = useState(2);
+  const [stages, setStages] = useState<AggregationStages>([
+    {
+      collapsed: false,
+      stageOperation: "$match",
+      stageBody: "{}",
+      documents: [],
+    },
+  ]);
+
+  return {
+    loading,
+    setLoading,
+    sampleCount,
+    setSampleCount,
+    stages,
+    setStages,
+  };
+};
+
 export const DocumentAggregation = ({
-  aggregationData,
-  setAggregationData,
-  mongodb_aggregate_documents,
-}: {
-  aggregationData: AggregationStages;
-  setAggregationData: ReactSetState<AggregationStages>;
-  mongodb_aggregate_documents: DebouncedFunc<() => void>;
-}) => {
-  const { height, width } = useWindowDimensions();
+  appStates: {
+    functions: { mongodb_aggregate_documents },
+    aggregateTab: {
+      stages,
+      setStages,
+      loading,
+      setLoading,
+      sampleCount,
+      setSampleCount,
+    },
+  },
+}: Readonly<{
+  appStates: AppState;
+}>) => {
+  const { height } = useWindowDimensions();
+  const [validated, setValidated] = useState(false);
+
+  const handleSubmit = (event: {
+    currentTarget: any;
+    preventDefault: () => void;
+    stopPropagation: () => void;
+  }) => {
+    const form = event.currentTarget;
+    if (form.checkValidity() === false) {
+      // event.preventDefault();
+      // event.stopPropagation();
+    }
+
+    setValidated(true);
+  };
+
   return (
     <div
       style={{
@@ -26,8 +79,60 @@ export const DocumentAggregation = ({
         minHeight: `${Math.max(0, height - 100)}px`,
       }}
     >
-      <Button onClick={() => mongodb_aggregate_documents()}>Refresh</Button>
-      {aggregationData.map(
+      <div>
+        <Form
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            columnGap: "5px",
+            justifyContent: "flex-start",
+          }}
+          noValidate
+          validated={validated}
+          onSubmit={handleSubmit}
+        >
+          <Form.Group
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "flex-start",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                }}
+              >
+                <InputGroup.Text>Sample count</InputGroup.Text>
+                <Form.Control
+                  required
+                  type="number"
+                  onChange={(v) =>
+                    setSampleCount(Math.max(0, parseInt(v.target.value)))
+                  }
+                  value={sampleCount}
+                />
+              </div>
+            </div>
+          </Form.Group>
+          <Button
+            onClick={() => {
+              setLoading(true);
+              mongodb_aggregate_documents();
+            }}
+          >
+            Refresh
+          </Button>
+        </Form>
+      </div>
+      {stages.map(
         ({ collapsed, stageOperation, stageBody, documents }, rowIdx) => (
           <div
             key={rowIdx}
@@ -61,7 +166,7 @@ export const DocumentAggregation = ({
                 >
                   <Button
                     onClick={() =>
-                      setAggregationData((stages) => {
+                      setStages((stages) => {
                         const copy = cloneDeep(stages);
                         copy[rowIdx].collapsed = copy[rowIdx].collapsed
                           ? false
@@ -117,7 +222,7 @@ export const DocumentAggregation = ({
                         <Dropdown.Item
                           eventKey="1"
                           onClick={() =>
-                            setAggregationData((stages) => {
+                            setStages((stages) => {
                               const copy = cloneDeep(stages);
                               copy[rowIdx].stageOperation = name;
                               return copy;
@@ -139,7 +244,7 @@ export const DocumentAggregation = ({
                 >
                   <Button
                     onClick={() =>
-                      setAggregationData((stages) =>
+                      setStages((stages) =>
                         stages.filter((v, idx) => idx !== rowIdx)
                       )
                     }
@@ -148,7 +253,7 @@ export const DocumentAggregation = ({
                   </Button>
                   <Button
                     onClick={() =>
-                      setAggregationData((stages) => {
+                      setStages((stages) => {
                         const leftCopy = stages.filter(
                           (v, idx) => idx <= rowIdx
                         );
@@ -178,7 +283,7 @@ export const DocumentAggregation = ({
                     display: "flex",
                   }}
                   onChange={(value) =>
-                    setAggregationData((stages) => {
+                    setStages((stages) => {
                       const copy = cloneDeep(stages);
                       try {
                         const json = JSON.stringify(
@@ -196,45 +301,56 @@ export const DocumentAggregation = ({
               )}
             </div>
             {!collapsed && (
-              <div
-                key={rowIdx}
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  overflowX: "auto",
-                  columnGap: "5px",
-                }}
-              >
-                {documents.length === 0 && <div>No documents found</div>}
-                {documents.length !== 0 &&
-                  documents.map((document, colIdx) => (
-                    <div
-                      key={colIdx}
-                      style={{
-                        display: "flex",
-                      }}
-                    >
-                      <Card
+              <div key={rowIdx}>
+                {loading ? (
+                  <Spinner animation="border" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </Spinner>
+                ) : (
+                  <div>
+                    {documents.length === 0 ? (
+                      <div>No documents found</div>
+                    ) : (
+                      <div
                         style={{
                           display: "flex",
+                          flexDirection: "row",
+                          overflowX: "auto",
+                          columnGap: "5px",
                         }}
                       >
-                        <Card.Body>
-                          <ReactJson
-                            name={false}
-                            src={document}
-                            collapsed={1}
-                            iconStyle="square"
-                            indentWidth={2}
-                            displayObjectSize={false}
-                            displayDataTypes={false}
-                            enableClipboard={false}
-                            sortKeys={true}
-                          />
-                        </Card.Body>
-                      </Card>
-                    </div>
-                  ))}
+                        {documents.map((document, colIdx) => (
+                          <div
+                            key={colIdx}
+                            style={{
+                              display: "flex",
+                            }}
+                          >
+                            <Card
+                              style={{
+                                display: "flex",
+                              }}
+                            >
+                              <Card.Body>
+                                <ReactJson
+                                  name={false}
+                                  src={document}
+                                  collapsed={1}
+                                  iconStyle="square"
+                                  indentWidth={2}
+                                  displayObjectSize={false}
+                                  displayDataTypes={false}
+                                  enableClipboard={false}
+                                  sortKeys={true}
+                                />
+                              </Card.Body>
+                            </Card>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -242,7 +358,7 @@ export const DocumentAggregation = ({
       )}
       <Button
         onClick={() => {
-          setAggregationData((stages) => {
+          setStages((stages) => {
             const copy = [
               ...cloneDeep(stages),
               {

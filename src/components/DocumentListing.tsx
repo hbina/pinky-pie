@@ -7,43 +7,69 @@ import {
   FormControl,
   Pagination,
   Form,
+  Button,
 } from "react-bootstrap";
 
-import { BsonDocument, ReactSetState } from "../types";
+import { AppState } from "../App";
+import { BsonDocument } from "../types";
+
+export const useDocumentsTabState = () => {
+  const [documents, setDocuments] = useState<BsonDocument[]>([]);
+  const [documentsCount, setDocumentsCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [documentsFilter, setDocumentsFilter] = useState({});
+  const [documentsProjection, setDocumentsProjection] = useState({});
+  const [documentsSort, setDocumentsSort] = useState({});
+  const [perPage, setPerPage] = useState(5);
+  const [page, setPage] = useState(0);
+  const [jsonDepth, setJsonDepth] = useState(1);
+
+  return {
+    documents,
+    setDocuments,
+    documentsCount,
+    setDocumentsCount,
+    loading,
+    setLoading,
+    documentsFilter,
+    setDocumentsFilter,
+    documentsProjection,
+    setDocumentsProjection,
+    documentsSort,
+    setDocumentsSort,
+    perPage,
+    setPerPage,
+    page,
+    setPage,
+    jsonDepth,
+    setJsonDepth,
+  };
+};
 
 const DocumentListing = ({
-  databaseName,
-  collectionName,
-  perPage,
-  setPerPage,
-  page,
-  setPage,
-  jsonDepth,
-  setJsonDepth,
-  documentsCount,
-  loading,
-  setLoading,
-  documents,
-  setDocumentsFilter,
-  setDocumentsProjection,
-  setDocumentsSort,
-}: Readonly<{
-  databaseName: string;
-  collectionName: string;
-  perPage: number;
-  setPerPage: ReactSetState<number>;
-  page: number;
-  setPage: ReactSetState<number>;
-  jsonDepth: number;
-  setJsonDepth: ReactSetState<number>;
-  documentsCount: number;
-  loading: boolean;
-  setLoading: ReactSetState<boolean>;
-  documents: BsonDocument[];
-  setDocumentsFilter: ReactSetState<Record<string, unknown>>;
-  setDocumentsProjection: ReactSetState<Record<string, unknown>>;
-  setDocumentsSort: ReactSetState<Record<string, unknown>>;
-}>) => {
+  appStates: {
+    functions: { mongodb_find_documents },
+    connectionData: { databaseName, collectionName },
+    documentsTab: {
+      perPage,
+      setPerPage,
+      page,
+      setPage,
+      documentsCount,
+      loading,
+      setLoading,
+      documents,
+      setDocumentsFilter,
+      setDocumentsProjection,
+      setDocumentsSort,
+      documentsFilter,
+      documentsSort,
+      documentsProjection,
+      jsonDepth,
+      setJsonDepth,
+    },
+  },
+}: Readonly<{ appStates: AppState }>) => {
   const [validated, setValidated] = useState(false);
 
   const handleSubmit = (event: {
@@ -174,6 +200,21 @@ const DocumentListing = ({
             </div>
           </div>
         </Form.Group>
+        <Button
+          onClick={() =>
+            mongodb_find_documents({
+              databaseName,
+              collectionName,
+              page,
+              perPage,
+              documentsFilter,
+              documentsSort,
+              documentsProjection,
+            })
+          }
+        >
+          Query
+        </Button>
       </Form>
       <div
         style={{

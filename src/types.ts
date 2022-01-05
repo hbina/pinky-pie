@@ -18,8 +18,8 @@ export type CollectionSpecification = Readonly<{
 export type BsonDocument = Readonly<Record<string, unknown>>;
 
 export type MongodbConnectInput = Readonly<{ mongodbUrl: string }>;
-export type ListCollectionsInput = Readonly<{ databaseName: string }>;
-export type ListDocumentsInput = Readonly<{
+export type MongodbFindCollectionsInput = Readonly<{ databaseName: string }>;
+export type MongodbFindDocumentsInput = Readonly<{
   databaseName: string;
   collectionName: string;
   page: number;
@@ -28,11 +28,11 @@ export type ListDocumentsInput = Readonly<{
   documentsProjection: Record<string, unknown>;
   documentsSort: Record<string, unknown>;
 }>;
-export type EstimatedDocumentCountInput = Readonly<{
+export type MongodbDocumentCountInput = Readonly<{
   databaseName: string;
   collectionName: string;
 }>;
-export type AggregateDocumentsInput = Readonly<{
+export type MongodbAggregateDocumentsInput = Readonly<{
   databaseName: string;
   collectionName: string;
   stages: Record<string, unknown>[];
@@ -46,3 +46,9 @@ export type AggregationStages = Readonly<
     documents: Record<string, unknown>[];
   }[]
 >;
+
+export enum CONTAINER_STATES {
+  HIDDEN,
+  LOADING,
+  LOADED,
+}

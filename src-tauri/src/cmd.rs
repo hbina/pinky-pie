@@ -22,7 +22,7 @@ pub async fn mongodb_connect(
 }
 
 #[command]
-pub async fn mongodb_find_colletions(
+pub async fn mongodb_find_collections(
   state: AppArg<'_>,
   database_name: String,
 ) -> Result<Vec<mongodb::results::CollectionSpecification>, String> {
@@ -33,7 +33,7 @@ pub async fn mongodb_find_colletions(
       .list_collections(None, None)
       .and_then(|r| r.collect::<Result<Vec<_>, _>>())
       .map_err(|err| {
-        eprintln!("mongodb_find_colletions::{}", err);
+        eprintln!("mongodb_find_collections::{}", err);
         "Unable to open collection".to_string()
       })
   } else {
@@ -101,14 +101,14 @@ pub async fn mongodb_aggregate_documents(
   state: AppArg<'_>,
   database_name: String,
   collection_name: String,
-  aggregation_stages: Vec<mongodb::bson::Document>,
+  stages: Vec<mongodb::bson::Document>,
 ) -> Result<Vec<mongodb::bson::Document>, String> {
   let handle = &*state.0.lock().unwrap();
   if let Some(client) = handle {
     let database = client.database(&database_name);
     let collections = database.collection::<mongodb::bson::Document>(&collection_name);
     let documents = collections
-      .aggregate(aggregation_stages, None)
+      .aggregate(stages, None)
       .and_then(|v| v.collect::<Result<Vec<mongodb::bson::Document>, _>>())
       .map_err(|err| {
         eprintln!("mongodb_aggregate_documents::{}", err);

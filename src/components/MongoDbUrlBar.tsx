@@ -1,45 +1,68 @@
-import { Button, Dropdown } from "react-bootstrap";
+import { useState } from "react";
+import { Button, Dropdown, Spinner } from "react-bootstrap";
 
+import { AppState } from "../App";
 import {
-  ReactSetState,
-  MongodbConnectInput,
-  DatabaseSpecification,
+  CONTAINER_STATES,
   CollectionSpecification,
+  DatabaseSpecification,
 } from "../types";
 
-export type MongodbUrlBar = {
-  url: string;
-  setUrl: ReactSetState<string>;
-  urlConnected: boolean;
-  mongodb_connect: (input: MongodbConnectInput) => void;
-  databases: DatabaseSpecification[];
-  databaseCollections: Record<string, CollectionSpecification[]>;
-  documentsCount: number;
-  databaseName: string;
-  setDatabaseName: ReactSetState<string>;
-  collectionName: string;
-  setCollectionName: ReactSetState<string>;
-  page: number;
-  setPage: ReactSetState<number>;
-  perPage: number;
+export const useMongodbUrlBarState = () => {
+  const [url, setUrl] = useState("mongodb://localhost:27017");
+  const [urlConnected, setUrlConnected] = useState(false);
+  const [databases, setDatabases] = useState<DatabaseSpecification[]>([]);
+  const [collections, setCollections] = useState<CollectionSpecification[]>([]);
+  const [databasesLoading, setDatabasesLoading] = useState(
+    CONTAINER_STATES.HIDDEN
+  );
+  const [collectionsLoading, setCollectionsLoading] = useState(
+    CONTAINER_STATES.HIDDEN
+  );
+  const [databaseName, setDatabaseName] = useState("");
+  const [collectionName, setCollectionName] = useState("");
+  return {
+    url,
+    setUrl,
+    urlConnected,
+    setUrlConnected,
+    databases,
+    setDatabases,
+    databasesLoading,
+    setDatabasesLoading,
+    collectionsLoading,
+    setCollectionsLoading,
+    databaseName,
+    setDatabaseName,
+    collectionName,
+    setCollectionName,
+    collections,
+    setCollections,
+  };
 };
 
 const MongoDbUrlBar = ({
-  url,
-  setUrl,
-  urlConnected,
-  mongodb_connect,
-  databases,
-  databaseCollections,
-  documentsCount,
-  databaseName,
-  setDatabaseName,
-  collectionName,
-  setCollectionName,
-  page,
-  setPage,
-  perPage,
-}: Readonly<MongodbUrlBar>) => {
+  appStates: {
+    functions: {
+      mongodb_connect,
+      mongodb_find_collections,
+      mongodb_find_documents,
+    },
+    connectionData: {
+      url,
+      setUrl,
+      urlConnected,
+      databaseName,
+      setDatabaseName,
+      collectionName,
+      setCollectionName,
+      databasesLoading,
+      collectionsLoading,
+      databases,
+      collections,
+    },
+  },
+}: Readonly<{ appStates: AppState }>) => {
   return (
     <div
       style={{
@@ -63,57 +86,74 @@ const MongoDbUrlBar = ({
           placeholder="MongoDB URL"
           onChange={(e) => setUrl(e.target.value)}
         />
-        <div>
-          {urlConnected ? (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                columnGap: "5px",
-              }}
-            >
-              <Dropdown>
-                <Dropdown.Toggle>{databaseName}</Dropdown.Toggle>
-                <Dropdown.Menu>
-                  {databases.map(({ name }) => (
-                    <Dropdown.Item
-                      key={name}
-                      onClick={() => {
-                        setDatabaseName(name);
-                        setCollectionName("");
-                      }}
-                    >
-                      {name}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown.Menu>
-              </Dropdown>
-              <Dropdown>
-                <Dropdown.Toggle>{collectionName}</Dropdown.Toggle>
-                <Dropdown.Menu>
-                  {(databaseCollections[databaseName] ?? []).map(({ name }) => (
-                    <Dropdown.Item
-                      key={name}
-                      onClick={() => {
-                        setCollectionName(name);
-                        setPage(0);
-                      }}
-                    >
-                      {name}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-          ) : (
-            <div>
-              <Button
-                variant="primary"
-                onClick={() => mongodb_connect({ mongodbUrl: url })}
-              >
-                Connect
-              </Button>
-            </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            columnGap: "5px",
+          }}
+        >
+          <Button
+            variant="primary"
+            onClick={() => mongodb_connect({ mongodbUrl: url })}
+          >
+            Connect
+          </Button>
+          {databasesLoading === CONTAINER_STATES.LOADING && (
+            <Spinner animation="border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+          )}
+          {databasesLoading === CONTAINER_STATES.LOADED && (
+            <Dropdown>
+              <Dropdown.Toggle>{databaseName}</Dropdown.Toggle>
+              <Dropdown.Menu>
+                {databases.map(({ name }) => (
+                  <Dropdown.Item
+                    key={name}
+                    onClick={() => {
+                      setDatabaseName(name);
+                      mongodb_find_collections({
+                        databaseName: name,
+                      });
+                    }}
+                  >
+                    {name}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+          )}
+          {collectionsLoading === CONTAINER_STATES.LOADING && (
+            <Spinner animation="border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+          )}
+          {collectionsLoading === CONTAINER_STATES.LOADED && (
+            <Dropdown>
+              <Dropdown.Toggle>{collectionName}</Dropdown.Toggle>
+              <Dropdown.Menu>
+                {collections.map(({ name }) => (
+                  <Dropdown.Item
+                    key={name}
+                    onClick={() => {
+                      setCollectionName(name);
+                      mongodb_find_documents({
+                        databaseName,
+                        collectionName: name,
+                        page: 0,
+                        perPage: 20,
+                        documentsFilter: {},
+                        documentsSort: {},
+                        documentsProjection: {},
+                      });
+                    }}
+                  >
+                    {name}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
           )}
         </div>
       </div>
