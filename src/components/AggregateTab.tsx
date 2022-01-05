@@ -11,19 +11,21 @@ import {
 import ReactJson from "react-json-view";
 import { AppState } from "../App";
 
-import { AggregationStages } from "../types";
+import { AggregationStageInput, AggregationStageOutput } from "../types";
 import { useWindowDimensions } from "../util";
 
 export const useAggregateTabState = () => {
   const [loading, setLoading] = useState(false);
   const [sampleCount, setSampleCount] = useState(2);
-  const [stages, setStages] = useState<AggregationStages>([
+  const [stagesInput, setStagesInput] = useState<AggregationStageInput[]>([
     {
       collapsed: false,
       stageOperation: "$match",
       stageBody: "{}",
-      documents: [],
     },
+  ]);
+  const [stagesOutput, setStagesOutput] = useState<AggregationStageOutput[]>([
+    { documents: [] },
   ]);
 
   return {
@@ -31,17 +33,21 @@ export const useAggregateTabState = () => {
     setLoading,
     sampleCount,
     setSampleCount,
-    stages,
-    setStages,
+    stagesInput,
+    setStagesInput,
+    stagesOutput,
+    setStagesOutput,
   };
 };
 
-export const DocumentAggregation = ({
+export const AggregateTab = ({
   appStates: {
     functions: { mongodb_aggregate_documents },
+    connectionData,
     aggregateTab: {
-      stages,
-      setStages,
+      stagesInput,
+      setStagesInput,
+      stagesOutput,
       loading,
       setLoading,
       sampleCount,
@@ -61,8 +67,8 @@ export const DocumentAggregation = ({
   }) => {
     const form = event.currentTarget;
     if (form.checkValidity() === false) {
-      // event.preventDefault();
-      // event.stopPropagation();
+      event.preventDefault();
+      event.stopPropagation();
     }
 
     setValidated(true);
@@ -114,6 +120,7 @@ export const DocumentAggregation = ({
                 <Form.Control
                   required
                   type="number"
+                  disabled={loading}
                   onChange={(v) =>
                     setSampleCount(Math.max(0, parseInt(v.target.value)))
                   }
@@ -123,17 +130,23 @@ export const DocumentAggregation = ({
             </div>
           </Form.Group>
           <Button
+            disabled={loading}
             onClick={() => {
               setLoading(true);
-              mongodb_aggregate_documents();
+              mongodb_aggregate_documents({
+                databaseName: connectionData.databaseName,
+                collectionName: connectionData.collectionName,
+                stages: stagesInput,
+              });
             }}
           >
             Refresh
           </Button>
         </Form>
       </div>
-      {stages.map(
-        ({ collapsed, stageOperation, stageBody, documents }, rowIdx) => (
+      {stagesInput
+        .map((l, i) => ({ ...l, ...stagesOutput[i] }))
+        .map(({ collapsed, stageOperation, stageBody, documents }, rowIdx) => (
           <div
             key={rowIdx}
             style={{
@@ -166,7 +179,7 @@ export const DocumentAggregation = ({
                 >
                   <Button
                     onClick={() =>
-                      setStages((stages) => {
+                      setStagesInput((stages) => {
                         const copy = cloneDeep(stages);
                         copy[rowIdx].collapsed = copy[rowIdx].collapsed
                           ? false
@@ -222,7 +235,7 @@ export const DocumentAggregation = ({
                         <Dropdown.Item
                           eventKey="1"
                           onClick={() =>
-                            setStages((stages) => {
+                            setStagesInput((stages) => {
                               const copy = cloneDeep(stages);
                               copy[rowIdx].stageOperation = name;
                               return copy;
@@ -244,7 +257,7 @@ export const DocumentAggregation = ({
                 >
                   <Button
                     onClick={() =>
-                      setStages((stages) =>
+                      setStagesInput((stages) =>
                         stages.filter((v, idx) => idx !== rowIdx)
                       )
                     }
@@ -253,7 +266,7 @@ export const DocumentAggregation = ({
                   </Button>
                   <Button
                     onClick={() =>
-                      setStages((stages) => {
+                      setStagesInput((stages) => {
                         const leftCopy = stages.filter(
                           (v, idx) => idx <= rowIdx
                         );
@@ -283,7 +296,7 @@ export const DocumentAggregation = ({
                     display: "flex",
                   }}
                   onChange={(value) =>
-                    setStages((stages) => {
+                    setStagesInput((stages) => {
                       const copy = cloneDeep(stages);
                       try {
                         const json = JSON.stringify(
@@ -354,18 +367,16 @@ export const DocumentAggregation = ({
               </div>
             )}
           </div>
-        )
-      )}
+        ))}
       <Button
         onClick={() => {
-          setStages((stages) => {
+          setStagesInput((stages) => {
             const copy = [
               ...cloneDeep(stages),
               {
                 collapsed: false,
                 stageOperation: "$match",
                 stageBody: "{}",
-                documents: [],
               },
             ];
             return copy;
@@ -377,5 +388,3 @@ export const DocumentAggregation = ({
     </div>
   );
 };
-
-export default DocumentAggregation;

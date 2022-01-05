@@ -11,7 +11,7 @@ import {
 } from "react-bootstrap";
 
 import { AppState } from "../App";
-import { BsonDocument } from "../types";
+import { BsonDocument, CONTAINER_STATUS } from "../types";
 
 export const useDocumentsTabState = () => {
   const [documents, setDocuments] = useState<BsonDocument[]>([]);
@@ -23,6 +23,9 @@ export const useDocumentsTabState = () => {
   const [perPage, setPerPage] = useState(5);
   const [page, setPage] = useState(0);
   const [jsonDepth, setJsonDepth] = useState(1);
+  const [queryButtonStatus, setQueryButtonStatus] = useState(
+    CONTAINER_STATUS.ENABLED
+  );
 
   return {
     documents,
@@ -43,10 +46,12 @@ export const useDocumentsTabState = () => {
     setPage,
     jsonDepth,
     setJsonDepth,
+    queryButtonStatus,
+    setQueryButtonStatus,
   };
 };
 
-const DocumentListing = ({
+export const DocumentsTab = ({
   appStates: {
     functions: { mongodb_find_documents },
     connectionData: { databaseName, collectionName },
@@ -67,6 +72,7 @@ const DocumentListing = ({
       documentsProjection,
       jsonDepth,
       setJsonDepth,
+      queryButtonStatus,
     },
   },
 }: Readonly<{ appStates: AppState }>) => {
@@ -129,6 +135,7 @@ const DocumentListing = ({
               <Form.Control
                 required
                 type="number"
+                disabled={loading}
                 onChange={(v) => {
                   setLoading(true);
                   setPage(Math.max(0, parseInt(v.target.value)));
@@ -160,6 +167,7 @@ const DocumentListing = ({
               <Form.Control
                 required
                 type="number"
+                disabled={loading}
                 onChange={(v) => {
                   setLoading(true);
                   setPerPage(Math.max(0, parseInt(v.target.value)));
@@ -192,6 +200,7 @@ const DocumentListing = ({
                 required
                 type="number"
                 defaultValue={jsonDepth}
+                disabled={loading}
                 onChange={(v) =>
                   setJsonDepth(Math.max(0, parseInt(v.target.value)))
                 }
@@ -201,6 +210,7 @@ const DocumentListing = ({
           </div>
         </Form.Group>
         <Button
+          disabled={loading}
           onClick={() =>
             mongodb_find_documents({
               databaseName,
@@ -233,6 +243,7 @@ const DocumentListing = ({
             <InputGroup.Text>Filter</InputGroup.Text>
             <FormControl
               placeholder={JSON.stringify({ key: "value" })}
+              disabled={loading}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
@@ -247,6 +258,7 @@ const DocumentListing = ({
             <InputGroup.Text>Projection</InputGroup.Text>
             <FormControl
               placeholder={JSON.stringify({ key: "value" })}
+              disabled={loading}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
@@ -261,6 +273,7 @@ const DocumentListing = ({
             <InputGroup.Text>Sort</InputGroup.Text>
             <FormControl
               placeholder={JSON.stringify({ key: "value" })}
+              disabled={loading}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
@@ -347,5 +360,3 @@ const DocumentListing = ({
     </div>
   );
 };
-
-export default DocumentListing;

@@ -6,6 +6,7 @@ import {
   CONTAINER_STATES,
   CollectionSpecification,
   DatabaseSpecification,
+  CONTAINER_STATUS,
 } from "../types";
 
 export const useMongodbUrlBarState = () => {
@@ -13,7 +14,7 @@ export const useMongodbUrlBarState = () => {
   const [urlConnected, setUrlConnected] = useState(false);
   const [databases, setDatabases] = useState<DatabaseSpecification[]>([]);
   const [collections, setCollections] = useState<CollectionSpecification[]>([]);
-  const [databasesLoading, setDatabasesLoading] = useState(
+  const [databasesLoading, setDatabasesState] = useState(
     CONTAINER_STATES.HIDDEN
   );
   const [collectionsLoading, setCollectionsLoading] = useState(
@@ -21,6 +22,8 @@ export const useMongodbUrlBarState = () => {
   );
   const [databaseName, setDatabaseName] = useState("");
   const [collectionName, setCollectionName] = useState("");
+  const [buttonStatus, setButtonStatus] = useState(CONTAINER_STATUS.ENABLED);
+
   return {
     url,
     setUrl,
@@ -29,7 +32,7 @@ export const useMongodbUrlBarState = () => {
     databases,
     setDatabases,
     databasesLoading,
-    setDatabasesLoading,
+    setDatabasesState,
     collectionsLoading,
     setCollectionsLoading,
     databaseName,
@@ -38,10 +41,12 @@ export const useMongodbUrlBarState = () => {
     setCollectionName,
     collections,
     setCollections,
+    buttonStatus,
+    setButtonStatus,
   };
 };
 
-const MongoDbUrlBar = ({
+export const MongoDbUrlBar = ({
   appStates: {
     functions: {
       mongodb_connect,
@@ -160,5 +165,3 @@ const MongoDbUrlBar = ({
     </div>
   );
 };
-
-export default MongoDbUrlBar;

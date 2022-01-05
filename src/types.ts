@@ -38,17 +38,23 @@ export type MongodbAggregateDocumentsInput = Readonly<{
   stages: Record<string, unknown>[];
 }>;
 
-export type AggregationStages = Readonly<
-  {
-    collapsed: boolean;
-    stageOperation: string;
-    stageBody: string;
-    documents: Record<string, unknown>[];
-  }[]
->;
+export type AggregationStageInput = {
+  collapsed: boolean;
+  stageOperation: string;
+  stageBody: string;
+};
+
+export type AggregationStageOutput = {
+  documents: Record<string, unknown>[];
+};
 
 export enum CONTAINER_STATES {
   HIDDEN,
   LOADING,
   LOADED,
+}
+
+export enum CONTAINER_STATUS {
+  ENABLED,
+  DISABLED,
 }
