@@ -149,7 +149,9 @@ export const useAppState = () => {
             }))
           );
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error(e);
+      }
     };
     f(input);
   };

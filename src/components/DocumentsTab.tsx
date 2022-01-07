@@ -199,7 +199,6 @@ export const DocumentsTab = ({
               <Form.Control
                 required
                 type="number"
-                defaultValue={jsonDepth}
                 disabled={loading}
                 onChange={(v) =>
                   setJsonDepth(Math.max(0, parseInt(v.target.value)))
