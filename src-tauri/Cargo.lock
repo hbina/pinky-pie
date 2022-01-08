@@ -65,6 +65,7 @@ dependencies = [
  "backtrace",
  "base64",
  "id3",
+ "lazy_static",
  "mongodb",
  "mp4ameta",
  "serde",

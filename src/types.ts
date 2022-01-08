@@ -17,7 +17,10 @@ export type CollectionSpecification = Readonly<{
 
 export type BsonDocument = Readonly<Record<string, unknown>>;
 
-export type MongodbConnectInput = Readonly<{ mongodbUrl: string }>;
+export type MongodbConnectInput = Readonly<{
+  mongodbUrl: string;
+  mongodbPort: number;
+}>;
 export type MongodbFindCollectionsInput = Readonly<{ databaseName: string }>;
 export type MongodbFindDocumentsInput = Readonly<{
   databaseName: string;
@@ -49,6 +52,16 @@ export type AggregationStageInput = {
 export type AggregationStageOutput = {
   loading: boolean;
   documents: Record<string, unknown>[];
+};
+
+export type MongodbServerInformation = {
+  address: {
+    Tcp: {
+      host: string;
+      port: number;
+    };
+  };
+  server_type: string;
 };
 
 export enum CONTAINER_STATES {

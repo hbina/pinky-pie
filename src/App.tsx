@@ -14,6 +14,7 @@ import {
   MongodbFindDocumentsInput,
   CONTAINER_STATES,
   CONTAINER_STATUS,
+  MongodbServerInformation,
 } from "./types";
 import {
   MongoDbUrlBar,
@@ -156,12 +157,25 @@ export const useAppState = () => {
     f(input);
   };
 
+  const mongodb_server_description = (input: MongodbConnectInput) => {
+    const f = async (input: MongodbConnectInput) => {
+      connectionData.setServerInformation(undefined);
+      const result = await invoke<
+        MongodbServerInformation,
+        MongodbConnectInput
+      >("mongodb_server_description", input);
+      connectionData.setServerInformation(result);
+    };
+    f(input);
+  };
+
   return {
     functions: {
       mongodb_connect,
       mongodb_find_collections,
       mongodb_find_documents,
       mongodb_aggregate_documents,
+      mongodb_server_description,
     },
     connectionData,
     documentsTab,

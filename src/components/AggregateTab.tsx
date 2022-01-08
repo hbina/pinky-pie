@@ -193,13 +193,13 @@ export const AggregateTab = ({
             rowIdx
           ) => (
             <Card
+              key={rowIdx}
               style={{
                 padding: "10px",
                 overflowY: "auto",
               }}
             >
               <div
-                key={rowIdx}
                 style={{
                   display: "flex",
                   flexDirection: "row",
@@ -254,6 +254,7 @@ export const AggregateTab = ({
                         >
                           {AGGREGATE_OPERATIONS.map((name, idx) => (
                             <Dropdown.Item
+                              key={idx}
                               eventKey={idx}
                               onClick={() =>
                                 setStagesInput((stages) => {
