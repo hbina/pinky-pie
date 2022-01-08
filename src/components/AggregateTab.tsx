@@ -77,7 +77,7 @@ export const AggregateTab = ({
   appStates: {
     functions: { mongodb_aggregate_documents },
     connectionData,
-    aggregateTab: {
+    aggregateTabState: {
       stagesInput,
       setStagesInput,
       stagesOutput,

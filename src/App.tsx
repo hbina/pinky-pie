@@ -22,11 +22,13 @@ import {
 } from "./components/MongoDbUrlBar";
 import { DocumentsTab, useDocumentsTabState } from "./components/DocumentsTab";
 import { AggregateTab, useAggregateTabState } from "./components/AggregateTab";
+import { useServerInfoState } from "./components/ServerInfo";
 
 export const useAppState = () => {
   const connectionData = useMongodbUrlBarState();
-  const documentsTab = useDocumentsTabState();
-  const aggregateTab = useAggregateTabState();
+  const documentsTabState = useDocumentsTabState();
+  const aggregateTabState = useAggregateTabState();
+  const serverInfoState = useServerInfoState();
 
   const mongodb_connect = (input: MongodbConnectInput) => {
     const f = async (input: MongodbConnectInput) => {
@@ -78,9 +80,9 @@ export const useAppState = () => {
   const mongodb_find_documents = (input: MongodbFindDocumentsInput) => {
     const f = async (input: MongodbFindDocumentsInput) => {
       try {
-        documentsTab.setQueryButtonStatus(CONTAINER_STATUS.DISABLED);
-        documentsTab.setLoading(true);
-        documentsTab.setDocuments([]);
+        documentsTabState.setQueryButtonStatus(CONTAINER_STATUS.DISABLED);
+        documentsTabState.setLoading(true);
+        documentsTabState.setDocuments([]);
         const documents = await invoke<
           BsonDocument[],
           MongodbFindDocumentsInput
@@ -89,11 +91,11 @@ export const useAppState = () => {
           "mongodb_count_documents",
           input
         );
-        documentsTab.setQueryButtonStatus(CONTAINER_STATUS.ENABLED);
-        documentsTab.setLoading(false);
-        documentsTab.setDocuments(documents);
+        documentsTabState.setQueryButtonStatus(CONTAINER_STATUS.ENABLED);
+        documentsTabState.setLoading(false);
+        documentsTabState.setDocuments(documents);
 
-        documentsTab.setDocumentsCount(documentCount);
+        documentsTabState.setDocumentsCount(documentCount);
       } catch (error) {
         console.error(error);
       }
@@ -106,7 +108,7 @@ export const useAppState = () => {
   ) => {
     const f = async (input: MongodbAggregateDocumentsInput) => {
       try {
-        aggregateTab.setStagesOutput((stagesOutput) => {
+        aggregateTabState.setStagesOutput((stagesOutput) => {
           const copy = cloneDeep(stagesOutput);
           copy[input.idx] = {
             loading: true,
@@ -134,7 +136,7 @@ export const useAppState = () => {
               })),
             ],
           });
-          aggregateTab.setStagesOutput((stagesOutput) => {
+          aggregateTabState.setStagesOutput((stagesOutput) => {
             const copy = cloneDeep(stagesOutput);
             copy[input.idx] = {
               loading: false,
@@ -143,7 +145,7 @@ export const useAppState = () => {
             return copy;
           });
         } else {
-          aggregateTab.setStagesOutput((stages) =>
+          aggregateTabState.setStagesOutput((stages) =>
             stages.map((s) => ({
               loading: false,
               documents: [],
@@ -159,12 +161,12 @@ export const useAppState = () => {
 
   const mongodb_server_description = (input: MongodbConnectInput) => {
     const f = async (input: MongodbConnectInput) => {
-      connectionData.setServerInformation(undefined);
+      serverInfoState.setServerInformation(undefined);
       const result = await invoke<
         MongodbServerInformation,
         MongodbConnectInput
       >("mongodb_server_description", input);
-      connectionData.setServerInformation(result);
+      serverInfoState.setServerInformation(result);
     };
     f(input);
   };
@@ -178,8 +180,9 @@ export const useAppState = () => {
       mongodb_server_description,
     },
     connectionData,
-    documentsTab,
-    aggregateTab,
+    documentsTabState,
+    aggregateTabState,
+    serverInfoState,
   };
 };
 

@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Button,
-  Dropdown,
-  Spinner,
-  Form,
-  InputGroup,
-  Modal,
-} from "react-bootstrap";
-import ReactJson from "react-json-view";
+import { Button, Dropdown, Spinner, Form, InputGroup } from "react-bootstrap";
 
 import { AppState } from "../App";
 import {
@@ -15,8 +7,8 @@ import {
   CollectionSpecification,
   DatabaseSpecification,
   CONTAINER_STATUS,
-  MongodbServerInformation,
 } from "../types";
+import { ServerInfo } from "./ServerInfo";
 
 export const useMongodbUrlBarState = () => {
   const [url, setUrl] = useState("localhost");
@@ -33,9 +25,6 @@ export const useMongodbUrlBarState = () => {
   const [databaseName, setDatabaseName] = useState("");
   const [collectionName, setCollectionName] = useState("");
   const [buttonStatus, setButtonStatus] = useState(CONTAINER_STATUS.ENABLED);
-  const [serverInformation, setServerInformation] = useState<
-    MongodbServerInformation | undefined
-  >(undefined);
 
   return {
     url,
@@ -58,13 +47,13 @@ export const useMongodbUrlBarState = () => {
     setCollections,
     buttonStatus,
     setButtonStatus,
-    serverInformation,
-    setServerInformation,
   };
 };
 
 export const MongoDbUrlBar = ({
-  appStates: {
+  appStates,
+}: Readonly<{ appStates: AppState }>) => {
+  const {
     functions: {
       mongodb_connect,
       mongodb_find_collections,
@@ -85,14 +74,9 @@ export const MongoDbUrlBar = ({
       collectionsLoading,
       databases,
       collections,
-      serverInformation,
     },
-  },
-}: Readonly<{ appStates: AppState }>) => {
-  const [show, setShow] = useState(false);
-  const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
-
+    serverInfoState: { setShow },
+  } = appStates;
   return (
     <div
       style={{
@@ -161,15 +145,24 @@ export const MongoDbUrlBar = ({
         >
           <Button
             variant="primary"
-            onClick={() =>
-              mongodb_connect({
-                mongodbUrl: url,
-                mongodbPort: port,
-              })
-            }
+            onClick={() => {
+              if (urlConnected) {
+                setShow(true);
+                mongodb_server_description({
+                  mongodbUrl: url,
+                  mongodbPort: port,
+                });
+              } else {
+                mongodb_connect({
+                  mongodbUrl: url,
+                  mongodbPort: port,
+                });
+              }
+            }}
           >
-            Connect
+            {urlConnected ? "Server Info" : "Connect"}
           </Button>
+          <ServerInfo appStates={appStates} />
           {databasesLoading === CONTAINER_STATES.LOADING && (
             <Spinner animation="border" role="status">
               <span className="visually-hidden">Loading...</span>
@@ -228,31 +221,6 @@ export const MongoDbUrlBar = ({
           )}
         </div>
       </div>
-      <Button
-        variant="primary"
-        onClick={() => {
-          handleShow();
-          mongodb_server_description({
-            mongodbUrl: url,
-            mongodbPort: port,
-          });
-        }}
-      >
-        Info
-      </Button>
-      <Modal show={show} onHide={handleClose}>
-        <Modal.Header closeButton>
-          <Modal.Title>Server information</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {serverInformation ? (
-            <ReactJson name={false} src={serverInformation} />
-          ) : (
-            <div>Not connected to any MongoDB service.</div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>App by Hanif Bin Ariffin</Modal.Footer>
-      </Modal>
     </div>
   );
 };

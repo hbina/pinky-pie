@@ -55,7 +55,7 @@ export const DocumentsTab = ({
   appStates: {
     functions: { mongodb_find_documents },
     connectionData: { databaseName, collectionName },
-    documentsTab: {
+    documentsTabState: {
       perPage,
       setPerPage,
       page,
