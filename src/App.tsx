@@ -15,6 +15,8 @@ import {
   CONTAINER_STATES,
   CONTAINER_STATUS,
   MongodbServerInformation,
+  MongodbAnalyzeDocumentInput,
+  MongodbAnalyzeDocumentOutput,
 } from "./types";
 import {
   MongoDbUrlBar,
@@ -23,12 +25,14 @@ import {
 import { DocumentsTab, useDocumentsTabState } from "./components/DocumentsTab";
 import { AggregateTab, useAggregateTabState } from "./components/AggregateTab";
 import { useServerInfoState } from "./components/ServerInfo";
+import { SchemaTab, useSchemaTabState } from "./components/SchemaTab";
 
 export const useAppState = () => {
   const connectionData = useMongodbUrlBarState();
   const documentsTabState = useDocumentsTabState();
   const aggregateTabState = useAggregateTabState();
   const serverInfoState = useServerInfoState();
+  const schemaTabState = useSchemaTabState();
 
   const mongodb_connect = (input: MongodbConnectInput) => {
     const f = async (input: MongodbConnectInput) => {
@@ -171,6 +175,20 @@ export const useAppState = () => {
     f(input);
   };
 
+  const mongodb_analyze_documents = (input: MongodbAnalyzeDocumentInput) => {
+    const f = async (input: MongodbAnalyzeDocumentInput) => {
+      schemaTabState.setLoading(true);
+      schemaTabState.setDocuments([]);
+      const result = await invoke<
+        MongodbAnalyzeDocumentOutput,
+        MongodbAnalyzeDocumentInput
+      >("mongodb_analyze_documents", input);
+      schemaTabState.setLoading(false);
+      schemaTabState.setDocuments(result);
+    };
+    f(input);
+  };
+
   return {
     functions: {
       mongodb_connect,
@@ -178,11 +196,13 @@ export const useAppState = () => {
       mongodb_find_documents,
       mongodb_aggregate_documents,
       mongodb_server_description,
+      mongodb_analyze_documents,
     },
     connectionData,
     documentsTabState,
     aggregateTabState,
     serverInfoState,
+    schemaTabState,
   };
 };
 
@@ -218,6 +238,9 @@ const App = () => {
           </Tab>
           <Tab eventKey="document_aggregation_tab" title="Aggregation">
             <AggregateTab appStates={appStates} />
+          </Tab>
+          <Tab eventKey="document_schema_tab" title="Schema">
+            <SchemaTab appStates={appStates} />
           </Tab>
         </Tabs>
       </div>

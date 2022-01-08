@@ -336,6 +336,7 @@ export const AggregateTab = ({
                       style={{
                         display: "flex",
                       }}
+                      disabled={loading}
                       onChange={(value) =>
                         setStagesInput((stages) => {
                           const copy = cloneDeep(stages);

@@ -21,7 +21,9 @@ export type MongodbConnectInput = Readonly<{
   mongodbUrl: string;
   mongodbPort: number;
 }>;
+
 export type MongodbFindCollectionsInput = Readonly<{ databaseName: string }>;
+
 export type MongodbFindDocumentsInput = Readonly<{
   databaseName: string;
   collectionName: string;
@@ -31,10 +33,12 @@ export type MongodbFindDocumentsInput = Readonly<{
   documentsProjection: Record<string, unknown>;
   documentsSort: Record<string, unknown>;
 }>;
+
 export type MongodbDocumentCountInput = Readonly<{
   databaseName: string;
   collectionName: string;
 }>;
+
 export type MongodbAggregateDocumentsInput = Readonly<{
   idx: number;
   sampleCount: number;
@@ -53,6 +57,14 @@ export type AggregationStageOutput = {
   loading: boolean;
   documents: Record<string, unknown>[];
 };
+
+export type MongodbAnalyzeDocumentInput = {
+  databaseName: string;
+  collectionName: string;
+  documentsFilter: Record<string, unknown>;
+};
+
+export type MongodbAnalyzeDocumentOutput = Array<[string, [string, number][]]>;
 
 export type MongodbServerInformation = {
   address: {
