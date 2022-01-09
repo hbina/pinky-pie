@@ -53,8 +53,8 @@ export const useMongodbUrlBarState = () => {
 export const MongoDbUrlBar = ({
   appStates,
 }: Readonly<{ appStates: AppState }>) => {
+  const HEIGHT = "30px";
   const {
-    window: { height },
     functions: {
       mongodb_connect,
       mongodb_find_collections,
@@ -83,7 +83,7 @@ export const MongoDbUrlBar = ({
       style={{
         display: "flex",
         justifyContent: "space-between",
-        height: "30px",
+        height: HEIGHT,
       }}
     >
       <div
@@ -91,7 +91,7 @@ export const MongoDbUrlBar = ({
           display: "flex",
           justifyContent: "flex-start",
           columnGap: "5px",
-          height: "100%",
+          height: HEIGHT,
         }}
       >
         <Form
@@ -100,6 +100,7 @@ export const MongoDbUrlBar = ({
             flexDirection: "row",
             columnGap: "5px",
             justifyContent: "flex-start",
+            height: HEIGHT,
           }}
           noValidate
         >
@@ -108,18 +109,21 @@ export const MongoDbUrlBar = ({
               display: "flex",
               flexDirection: "row",
               width: "300px",
+              height: HEIGHT,
             }}
           >
             <InputGroup.Text
               style={{
-                minWidth: "110px",
+                width: "110px",
+                height: HEIGHT,
               }}
             >
               mongodb://
             </InputGroup.Text>
             <Form.Control
               style={{
-                minWidth: "100px",
+                width: "100px",
+                height: HEIGHT,
               }}
               required
               type="text"
@@ -129,7 +133,8 @@ export const MongoDbUrlBar = ({
             />
             <Form.Control
               style={{
-                minWidth: "90px",
+                width: "90px",
+                height: HEIGHT,
               }}
               required
               type="number"
@@ -144,12 +149,14 @@ export const MongoDbUrlBar = ({
             display: "flex",
             flexDirection: "row",
             columnGap: "5px",
+            height: HEIGHT,
           }}
         >
           <Button
             style={{
               display: "flex",
               alignItems: "center",
+              height: HEIGHT,
             }}
             variant="primary"
             onClick={() => {
@@ -181,7 +188,7 @@ export const MongoDbUrlBar = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  height: `100%`,
+                  height: HEIGHT,
                 }}
               >
                 {databaseName}
@@ -214,7 +221,7 @@ export const MongoDbUrlBar = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  height: `100%`,
+                  height: HEIGHT,
                 }}
               >
                 {collectionName}

@@ -12,7 +12,6 @@ import ReactJson from "react-json-view";
 import { AppState } from "../App";
 
 import { AggregationStageInput, AggregationStageOutput } from "../types";
-import { useWindowDimensions } from "../util";
 
 const AGGREGATE_OPERATIONS = [
   "$addFields",
@@ -95,6 +94,7 @@ export const AggregateTab = ({
 }: Readonly<{
   appStates: AppState;
 }>) => {
+  const HEIGHT = "30px";
   const [validated, setValidated] = useState(false);
 
   const handleSubmit = (event: {
@@ -118,8 +118,6 @@ export const AggregateTab = ({
         flexDirection: "column",
         rowGap: "5px",
         paddingTop: "5px",
-        // TODO: This is mostly a hack
-        minHeight: `${Math.max(0, height - 100)}px`,
       }}
     >
       <Form
@@ -127,6 +125,7 @@ export const AggregateTab = ({
           display: "flex",
           flexDirection: "row",
           justifyContent: "space-between",
+          height: HEIGHT,
         }}
         noValidate
         validated={validated}
@@ -137,12 +136,14 @@ export const AggregateTab = ({
             display: "flex",
             flexDirection: "row",
             columnGap: "5px",
+            height: HEIGHT,
           }}
         >
           <div
             style={{
               display: "flex",
               flexDirection: "row",
+              height: HEIGHT,
             }}
           >
             <InputGroup.Text>Sample count</InputGroup.Text>
@@ -159,6 +160,12 @@ export const AggregateTab = ({
             />
           </div>
           <Button
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: HEIGHT,
+            }}
             disabled={chain(stagesOutput)
               .some((s) => s.loading)
               .value()}
@@ -185,41 +192,59 @@ export const AggregateTab = ({
             flexDirection: "row",
             alignItems: "center",
             columnGap: "5px",
+            height: HEIGHT,
           }}
         >
-          <InputGroup.Text>Width</InputGroup.Text>
+          <InputGroup.Text
+            style={{
+              height: HEIGHT,
+            }}
+          >
+            Width
+          </InputGroup.Text>
           <Form.Range
+            style={{
+              height: HEIGHT,
+            }}
             onChange={(v) =>
-              setDocumentWidth(200 + (parseInt(v.target.value) * width) / 500)
+              setDocumentWidth(200 + (parseInt(v.target.value) / 100) * width)
             }
           />
         </div>
       </Form>
-      {stagesInput
-        .map((l, i) => ({ ...l, ...stagesOutput[i] }))
-        .map(
-          (
-            { collapsed, stageOperation, stageBody, documents, loading },
-            rowIdx
-          ) => (
-            <Card
-              key={rowIdx}
-              style={{
-                padding: "5px",
-                overflowY: "auto",
-              }}
-            >
-              <div
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          rowGap: "5px",
+          height: `${
+            height - (5 + 30 + 5) - 50 - (5 + 30 + 5) - (5 + 30 + 5)
+          }px`,
+          overflowY: "scroll",
+        }}
+      >
+        {stagesInput
+          .map((l, i) => ({ ...l, ...stagesOutput[i] }))
+          .map(
+            (
+              { collapsed, stageOperation, stageBody, documents, loading },
+              rowIdx
+            ) => (
+              <Card
+                key={rowIdx}
                 style={{
                   display: "flex",
                   flexDirection: "row",
+                  alignItems: "flex-start",
                   columnGap: "10px",
+                  padding: "5px",
                 }}
               >
                 <div
                   style={{
                     display: "flex",
                     flexDirection: "column",
+                    width: `${width / 3}px`,
                   }}
                 >
                   <div
@@ -228,7 +253,6 @@ export const AggregateTab = ({
                       flexDirection: "row",
                       justifyContent: "space-between",
                       paddingBottom: "5px",
-                      minWidth: "400px",
                     }}
                   >
                     <div
@@ -239,7 +263,12 @@ export const AggregateTab = ({
                       }}
                     >
                       <Button
-                        disabled={loading}
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          height: HEIGHT,
+                        }}
                         onClick={() =>
                           setStagesInput((stages) => {
                             const copy = cloneDeep(stages);
@@ -253,12 +282,20 @@ export const AggregateTab = ({
                         {collapsed ? "Expand" : "Collapse"}
                       </Button>
                       <Dropdown>
-                        <Dropdown.Toggle variant="success" id="dropdown-basic">
+                        <Dropdown.Toggle
+                          style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            height: HEIGHT,
+                          }}
+                          id="dropdown-basic"
+                        >
                           {stageOperation || "$match"}
                         </Dropdown.Toggle>
                         <Dropdown.Menu
                           style={{
-                            maxHeight: "500px",
+                            height: `${height}px`,
                             overflowY: "auto",
                           }}
                         >
@@ -288,6 +325,12 @@ export const AggregateTab = ({
                       }}
                     >
                       <Button
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          height: HEIGHT,
+                        }}
                         disabled={loading}
                         onClick={() => {
                           setStagesInput((stages) =>
@@ -301,40 +344,39 @@ export const AggregateTab = ({
                         Delete
                       </Button>
                       <Button
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          height: HEIGHT,
+                        }}
+                        disabled={loading}
                         onClick={() => {
-                          setStagesInput((stages) => {
-                            const leftCopy = cloneDeep(
+                          setStagesInput((stages) => [
+                            ...cloneDeep(
                               stages.filter((v, idx) => idx <= rowIdx)
-                            );
-                            const rightCopy = cloneDeep(
+                            ),
+                            {
+                              collapsed: false,
+                              stageOperation: "$match",
+                              stageBody: "{}",
+                            },
+                            ...cloneDeep(
                               stages.filter((v, idx) => idx > rowIdx)
-                            );
-                            return [
-                              ...leftCopy,
-                              {
-                                collapsed: false,
-                                stageOperation: "$match",
-                                stageBody: "{}",
-                              },
-                              ...rightCopy,
-                            ];
-                          });
-                          setStagesOutput((stages) => {
-                            const leftCopy = cloneDeep(
+                            ),
+                          ]);
+                          setStagesOutput((stages) => [
+                            ...cloneDeep(
                               stages.filter((v, idx) => idx <= rowIdx)
-                            );
-                            const rightCopy = cloneDeep(
+                            ),
+                            {
+                              loading: false,
+                              documents: [],
+                            },
+                            ...cloneDeep(
                               stages.filter((v, idx) => idx > rowIdx)
-                            );
-                            return [
-                              ...leftCopy,
-                              {
-                                loading: false,
-                                documents: [],
-                              },
-                              ...rightCopy,
-                            ];
-                          });
+                            ),
+                          ]);
                         }}
                       >
                         +
@@ -367,61 +409,76 @@ export const AggregateTab = ({
                     />
                   )}
                 </div>
-                {!collapsed && (
-                  <div key={rowIdx}>
-                    {loading ? (
-                      <Spinner animation="border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                      </Spinner>
-                    ) : (
-                      <div>
-                        {documents.length === 0 ? (
-                          <div>No documents found</div>
-                        ) : (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "row",
-                              overflowX: "auto",
-                              columnGap: "5px",
-                            }}
-                          >
-                            {documents.map((document, colIdx) => (
-                              <Card
-                                key={colIdx}
-                                style={{
-                                  display: "flex",
-                                  width: `${documentWidth}px`,
-                                  overflow: "auto",
-                                }}
-                              >
-                                <Card.Body>
-                                  <ReactJson
-                                    name={false}
-                                    src={document}
-                                    collapsed={1}
-                                    iconStyle="square"
-                                    indentWidth={2}
-                                    displayObjectSize={false}
-                                    displayDataTypes={true}
-                                    enableClipboard={false}
-                                    sortKeys={true}
-                                    onSelect={(v) => console.log("v", v)}
-                                  />
-                                </Card.Body>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                {loading && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: `${(width * 2) / 3}px`,
+                    }}
+                  >
+                    <Spinner animation="border" role="status" />
                   </div>
                 )}
-              </div>
-            </Card>
-          )
-        )}
+                {!loading && documents.length === 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: `${(width * 2) / 3}px`,
+                    }}
+                  >
+                    No documents found
+                  </div>
+                )}
+                {!loading && documents.length !== 0 && !collapsed && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "flex-start",
+                      columnGap: "5px",
+                    }}
+                  >
+                    {documents.map((document, colIdx) => (
+                      <Card
+                        key={colIdx}
+                        style={{
+                          display: "flex",
+                          width: `${documentWidth}px`,
+                        }}
+                      >
+                        <Card.Body>
+                          <ReactJson
+                            name={false}
+                            src={document}
+                            collapsed={1}
+                            iconStyle="square"
+                            indentWidth={2}
+                            displayObjectSize={false}
+                            displayDataTypes={true}
+                            enableClipboard={false}
+                            sortKeys={true}
+                            onSelect={(v) => console.log("v", v)}
+                          />
+                        </Card.Body>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )
+          )}
+      </div>
       <Button
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "30px",
+        }}
         onClick={() => {
           setStagesInput((stages) => {
             const copy = [

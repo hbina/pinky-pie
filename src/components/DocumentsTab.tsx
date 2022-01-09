@@ -13,7 +13,6 @@ import {
 
 import { AppState } from "../App";
 import { BsonDocument, CONTAINER_STATUS } from "../types";
-import { useWindowDimensions } from "../util";
 
 export const useDocumentsTabState = () => {
   const [documents, setDocuments] = useState<BsonDocument[]>([]);

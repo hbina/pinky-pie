@@ -221,7 +221,7 @@ const invoke: <O, T = Record<string, unknown>>(
 const App = () => {
   const appStates = useAppState();
   const {
-    window: { width, height },
+    window: { height },
     connectionData: { databaseName, collectionName },
   } = appStates;
 
@@ -232,6 +232,7 @@ const App = () => {
         padding: "5px",
         rowGap: "5px",
         flexDirection: "column",
+        height: height,
       }}
     >
       <MongoDbUrlBar appStates={appStates} />
