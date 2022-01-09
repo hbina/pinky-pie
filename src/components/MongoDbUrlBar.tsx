@@ -83,6 +83,7 @@ export const MongoDbUrlBar = ({
       style={{
         display: "flex",
         justifyContent: "space-between",
+        height: "30px",
       }}
     >
       <div
@@ -90,6 +91,7 @@ export const MongoDbUrlBar = ({
           display: "flex",
           justifyContent: "flex-start",
           columnGap: "5px",
+          height: "100%",
         }}
       >
         <Form
@@ -145,6 +147,10 @@ export const MongoDbUrlBar = ({
           }}
         >
           <Button
+            style={{
+              display: "flex",
+              alignItems: "center",
+            }}
             variant="primary"
             onClick={() => {
               if (urlConnected) {
@@ -171,7 +177,15 @@ export const MongoDbUrlBar = ({
           )}
           {databasesLoading === CONTAINER_STATES.LOADED && (
             <Dropdown>
-              <Dropdown.Toggle>{databaseName}</Dropdown.Toggle>
+              <Dropdown.Toggle
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  height: `100%`,
+                }}
+              >
+                {databaseName}
+              </Dropdown.Toggle>
               <Dropdown.Menu>
                 {databases.map(({ name }) => (
                   <Dropdown.Item
@@ -196,7 +210,15 @@ export const MongoDbUrlBar = ({
           )}
           {collectionsLoading === CONTAINER_STATES.LOADED && (
             <Dropdown>
-              <Dropdown.Toggle>{collectionName}</Dropdown.Toggle>
+              <Dropdown.Toggle
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  height: `100%`,
+                }}
+              >
+                {collectionName}
+              </Dropdown.Toggle>
               <Dropdown.Menu>
                 {collections.map(({ name }) => (
                   <Dropdown.Item

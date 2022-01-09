@@ -221,6 +221,7 @@ const invoke: <O, T = Record<string, unknown>>(
 const App = () => {
   const appStates = useAppState();
   const {
+    window: { width, height },
     connectionData: { databaseName, collectionName },
   } = appStates;
 

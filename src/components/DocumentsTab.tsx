@@ -8,6 +8,7 @@ import {
   Pagination,
   Form,
   Button,
+  Stack,
 } from "react-bootstrap";
 
 import { AppState } from "../App";
@@ -64,7 +65,6 @@ export const DocumentsTab = ({
       setPage,
       documentsCount,
       loading,
-      setLoading,
       documents,
       setDocumentsFilter,
       setDocumentsProjection,
@@ -74,7 +74,6 @@ export const DocumentsTab = ({
       documentsProjection,
       jsonDepth,
       setJsonDepth,
-      queryButtonStatus,
     },
   },
 }: Readonly<{ appStates: AppState }>) => {
@@ -103,110 +102,165 @@ export const DocumentsTab = ({
         rowGap: "5px",
       }}
     >
+      {/* Document page, perPage and depth */}
       <Form
         style={{
           display: "flex",
           flexDirection: "row",
-          columnGap: "5px",
-          justifyContent: "flex-start",
+          justifyContent: "space-between",
+          height: "30px",
         }}
         noValidate
         validated={validated}
         onSubmit={handleSubmit}
       >
-        <Form.Group
+        <Stack
           style={{
             display: "flex",
             flexDirection: "row",
+            columnGap: "5px",
             justifyContent: "flex-start",
+            height: "30px",
           }}
         >
-          <div
+          <Form.Group
             style={{
               display: "flex",
-              flexDirection: "column",
+              flexDirection: "row",
+              justifyContent: "flex-start",
+              height: "30px",
             }}
           >
             <div
               style={{
                 display: "flex",
-                flexDirection: "row",
+                flexDirection: "column",
+                height: "30px",
               }}
             >
-              <InputGroup.Text>Page</InputGroup.Text>
-              <Form.Control
-                required
-                type="number"
-                disabled={loading}
-                onChange={(v) => setPage(Math.max(0, parseInt(v.target.value)))}
-                value={page}
-              />
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  height: "30px",
+                }}
+              >
+                <InputGroup.Text
+                  style={{
+                    height: "30px",
+                  }}
+                >
+                  Page
+                </InputGroup.Text>
+                <Form.Control
+                  style={{
+                    height: "30px",
+                  }}
+                  required
+                  type="number"
+                  disabled={loading}
+                  onChange={(v) =>
+                    setPage(Math.max(0, parseInt(v.target.value)))
+                  }
+                  value={page}
+                />
+              </div>
             </div>
-          </div>
-        </Form.Group>
-        <Form.Group
-          style={{
-            display: "flex",
-            flexDirection: "row",
-          }}
-        >
-          <div
+          </Form.Group>
+          <Form.Group
             style={{
               display: "flex",
-              flexDirection: "column",
+              flexDirection: "row",
+              height: "30px",
             }}
           >
             <div
               style={{
                 display: "flex",
-                flexDirection: "row",
+                flexDirection: "column",
+                height: "30px",
               }}
             >
-              <InputGroup.Text>Per page</InputGroup.Text>
-              <Form.Control
-                required
-                type="number"
-                disabled={loading}
-                onChange={(v) =>
-                  setPerPage(Math.max(0, parseInt(v.target.value)))
-                }
-                value={perPage}
-              />
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  height: "30px",
+                }}
+              >
+                <InputGroup.Text
+                  style={{
+                    height: "30px",
+                  }}
+                >
+                  Per page
+                </InputGroup.Text>
+                <Form.Control
+                  style={{
+                    height: "30px",
+                  }}
+                  required
+                  type="number"
+                  disabled={loading}
+                  onChange={(v) =>
+                    setPerPage(Math.max(0, parseInt(v.target.value)))
+                  }
+                  value={perPage}
+                />
+              </div>
             </div>
-          </div>
-        </Form.Group>
-        <Form.Group
-          style={{
-            display: "flex",
-            flexDirection: "row",
-          }}
-        >
-          <div
+          </Form.Group>
+          <Form.Group
             style={{
               display: "flex",
-              flexDirection: "column",
+              flexDirection: "row",
+              height: "30px",
             }}
           >
             <div
               style={{
                 display: "flex",
-                flexDirection: "row",
+                flexDirection: "column",
+                height: "30px",
               }}
             >
-              <InputGroup.Text>Depth</InputGroup.Text>
-              <Form.Control
-                required
-                type="number"
-                disabled={loading}
-                onChange={(v) =>
-                  setJsonDepth(Math.max(0, parseInt(v.target.value)))
-                }
-                value={jsonDepth}
-              />
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  height: "30px",
+                }}
+              >
+                <InputGroup.Text
+                  style={{
+                    height: "30px",
+                  }}
+                >
+                  Depth
+                </InputGroup.Text>
+                <Form.Control
+                  style={{
+                    height: "30px",
+                  }}
+                  required
+                  type="number"
+                  disabled={loading}
+                  onChange={(v) =>
+                    setJsonDepth(Math.max(0, parseInt(v.target.value)))
+                  }
+                  value={jsonDepth}
+                />
+              </div>
             </div>
-          </div>
-        </Form.Group>
+          </Form.Group>
+        </Stack>
         <Button
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "30px",
+          }}
           disabled={loading}
           onClick={() =>
             mongodb_find_documents({
@@ -223,21 +277,34 @@ export const DocumentsTab = ({
           Query
         </Button>
       </Form>
-      <div
+      {/*
+      1. Document filters, projections and sort
+      2. Pagination on the right.
+      */}
+      <Form
         style={{
           display: "flex",
           flexDirection: "row",
+          justifyContent: "space-between",
+          height: "90px",
+          overflow: "auto",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            flexGrow: 80,
-            flexDirection: "column",
-          }}
-        >
-          <InputGroup>
-            <InputGroup.Text>Filter</InputGroup.Text>
+        <Stack direction="vertical">
+          <Form.Group
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              height: "30px",
+            }}
+          >
+            <InputGroup.Text
+              style={{
+                width: "120px",
+              }}
+            >
+              Filter
+            </InputGroup.Text>
             <FormControl
               placeholder={JSON.stringify({ key: "value" })}
               disabled={loading}
@@ -250,9 +317,21 @@ export const DocumentsTab = ({
                 }
               }}
             />
-          </InputGroup>
-          <InputGroup>
-            <InputGroup.Text>Projection</InputGroup.Text>
+          </Form.Group>
+          <Form.Group
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              height: "30px",
+            }}
+          >
+            <InputGroup.Text
+              style={{
+                width: "120px",
+              }}
+            >
+              Projection
+            </InputGroup.Text>
             <FormControl
               placeholder={JSON.stringify({ key: "value" })}
               disabled={loading}
@@ -265,9 +344,21 @@ export const DocumentsTab = ({
                 }
               }}
             />
-          </InputGroup>
-          <InputGroup>
-            <InputGroup.Text>Sort</InputGroup.Text>
+          </Form.Group>
+          <Form.Group
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              height: "30px",
+            }}
+          >
+            <InputGroup.Text
+              style={{
+                width: "120px",
+              }}
+            >
+              Sort
+            </InputGroup.Text>
             <FormControl
               placeholder={JSON.stringify({ key: "value" })}
               disabled={loading}
@@ -280,21 +371,30 @@ export const DocumentsTab = ({
                 }
               }}
             />
-          </InputGroup>
-        </div>
-        <div
+          </Form.Group>
+        </Stack>
+        <Form.Group
           style={{
             display: "flex",
-            flexGrow: 1,
             flexDirection: "column",
-            justifyContent: "flex-start",
+            justifyContent: "center",
+            alignItems: "center",
             columnGap: "5px",
             padding: "5px",
-            alignItems: "center",
+            width: "15%",
           }}
         >
-          <Pagination>
+          <Pagination
+            style={{
+              display: "flex",
+              height: "30px",
+            }}
+          >
             <Pagination.Prev
+              style={{
+                display: "flex",
+                height: "30px",
+              }}
               onClick={() => {
                 setPage((page) => Math.max(0, page - 1));
                 mongodb_find_documents({
@@ -309,6 +409,10 @@ export const DocumentsTab = ({
               }}
             />
             <Pagination.Next
+              style={{
+                display: "flex",
+                height: "30px",
+              }}
               onClick={() => {
                 setPage((page) =>
                   Math.min(Math.floor(documentsCount / perPage), page + 1)
@@ -325,28 +429,34 @@ export const DocumentsTab = ({
               }}
             />
           </Pagination>
-          <p>
+          <p
+            style={{
+              display: "flex",
+            }}
+          >
             {perPage * page + 1} -
             {Math.min(perPage * (page + 1), documentsCount)} of {documentsCount}
           </p>
-        </div>
-      </div>
+        </Form.Group>
+      </Form>
+      {/* List of documents */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           rowGap: "5px",
+          minHeight: `80%`,
+          overflow: "auto",
         }}
       >
         {loading ? (
           <div
             style={{
               display: "flex",
-              height: `${height * 0.8}px`,
               width: "100%",
               justifyContent: "center",
               alignItems: "center",
-              alignContent: "center",
+              height: `${height * 0.6}px`,
             }}
           >
             <Spinner animation="border" role="status" />
@@ -357,6 +467,17 @@ export const DocumentsTab = ({
               display: "flex",
               flexDirection: "column",
               rowGap: "5px",
+              height: `${
+                height -
+                // the URL bar at the top
+                (5 + 30 + 5) -
+                // tabs
+                50 -
+                // page and perpage
+                (5 + 30 + 5) -
+                // document filters, projections and sorts
+                (30 * 3 + 5)
+              }px`,
             }}
           >
             {documents.map((document, idx) => (
