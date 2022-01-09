@@ -1,30 +1,16 @@
-import { cloneDeep, chain } from "lodash";
+import { chain } from "lodash";
 import { useState } from "react";
 import {
   Button,
   Card,
-  Col,
-  Container,
-  Dropdown,
-  Form,
   FormControl,
   InputGroup,
-  Pagination,
   ProgressBar,
-  Row,
   Spinner,
 } from "react-bootstrap";
-import ReactJson from "react-json-view";
-import { AppState } from "../App";
 
-import {
-  AggregationStageInput,
-  AggregationStageOutput,
-  BsonDocument,
-  CONTAINER_STATUS,
-  MongodbAnalyzeDocumentOutput,
-} from "../types";
-import { useWindowDimensions } from "../util";
+import { AppState } from "../App";
+import { MongodbAnalyzeDocumentOutput } from "../types";
 
 export const useSchemaTabState = () => {
   const [loading, setLoading] = useState(false);
@@ -41,7 +27,7 @@ export const useSchemaTabState = () => {
   };
 };
 
-const PROGRESS_BAR_COLOR = ["success", "danger", "warning", "info"];
+const PROGRESS_BAR_VARIANT = ["success", "danger", "warning", "info"];
 
 export const SchemaTab = ({
   appStates: {
@@ -127,7 +113,7 @@ export const SchemaTab = ({
                 <Card
                   style={{
                     display: "flex",
-                    flexDirection: "row",
+                    flexDirection: "column",
                   }}
                 >
                   <Card.Header>{key}</Card.Header>
@@ -139,7 +125,9 @@ export const SchemaTab = ({
                             (v / chain(document).map("1").sum().value()) * 100
                           }
                           variant={
-                            PROGRESS_BAR_COLOR[idx % PROGRESS_BAR_COLOR.length]
+                            PROGRESS_BAR_VARIANT[
+                              idx % PROGRESS_BAR_VARIANT.length
+                            ]
                           }
                           key={key}
                           label={key}

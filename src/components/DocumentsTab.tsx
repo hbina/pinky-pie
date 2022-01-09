@@ -12,6 +12,7 @@ import {
 
 import { AppState } from "../App";
 import { BsonDocument, CONTAINER_STATUS } from "../types";
+import { useWindowDimensions } from "../util";
 
 export const useDocumentsTabState = () => {
   const [documents, setDocuments] = useState<BsonDocument[]>([]);
@@ -53,6 +54,7 @@ export const useDocumentsTabState = () => {
 
 export const DocumentsTab = ({
   appStates: {
+    window: { width, height },
     functions: { mongodb_find_documents },
     connectionData: { databaseName, collectionName },
     documentsTabState: {
@@ -136,10 +138,7 @@ export const DocumentsTab = ({
                 required
                 type="number"
                 disabled={loading}
-                onChange={(v) => {
-                  setLoading(true);
-                  setPage(Math.max(0, parseInt(v.target.value)));
-                }}
+                onChange={(v) => setPage(Math.max(0, parseInt(v.target.value)))}
                 value={page}
               />
             </div>
@@ -168,10 +167,9 @@ export const DocumentsTab = ({
                 required
                 type="number"
                 disabled={loading}
-                onChange={(v) => {
-                  setLoading(true);
-                  setPerPage(Math.max(0, parseInt(v.target.value)));
-                }}
+                onChange={(v) =>
+                  setPerPage(Math.max(0, parseInt(v.target.value)))
+                }
                 value={perPage}
               />
             </div>
@@ -298,16 +296,32 @@ export const DocumentsTab = ({
           <Pagination>
             <Pagination.Prev
               onClick={() => {
-                setLoading(true);
                 setPage((page) => Math.max(0, page - 1));
+                mongodb_find_documents({
+                  databaseName,
+                  collectionName,
+                  page,
+                  perPage,
+                  documentsFilter,
+                  documentsSort,
+                  documentsProjection,
+                });
               }}
             />
             <Pagination.Next
               onClick={() => {
-                setLoading(true);
                 setPage((page) =>
                   Math.min(Math.floor(documentsCount / perPage), page + 1)
                 );
+                mongodb_find_documents({
+                  databaseName,
+                  collectionName,
+                  page,
+                  perPage,
+                  documentsFilter,
+                  documentsSort,
+                  documentsProjection,
+                });
               }}
             />
           </Pagination>
@@ -325,9 +339,18 @@ export const DocumentsTab = ({
         }}
       >
         {loading ? (
-          <Spinner animation="border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
+          <div
+            style={{
+              display: "flex",
+              height: `${height * 0.8}px`,
+              width: "100%",
+              justifyContent: "center",
+              alignItems: "center",
+              alignContent: "center",
+            }}
+          >
+            <Spinner animation="border" role="status" />
+          </div>
         ) : (
           <div
             style={{

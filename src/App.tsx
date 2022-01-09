@@ -26,8 +26,10 @@ import { DocumentsTab, useDocumentsTabState } from "./components/DocumentsTab";
 import { AggregateTab, useAggregateTabState } from "./components/AggregateTab";
 import { useServerInfoState } from "./components/ServerInfo";
 import { SchemaTab, useSchemaTabState } from "./components/SchemaTab";
+import { useWindowDimensions } from "./util";
 
 export const useAppState = () => {
+  const { width, height } = useWindowDimensions();
   const connectionData = useMongodbUrlBarState();
   const documentsTabState = useDocumentsTabState();
   const aggregateTabState = useAggregateTabState();
@@ -87,6 +89,7 @@ export const useAppState = () => {
         documentsTabState.setQueryButtonStatus(CONTAINER_STATUS.DISABLED);
         documentsTabState.setLoading(true);
         documentsTabState.setDocuments([]);
+        documentsTabState.setDocumentsCount(0);
         const documents = await invoke<
           BsonDocument[],
           MongodbFindDocumentsInput
@@ -98,7 +101,6 @@ export const useAppState = () => {
         documentsTabState.setQueryButtonStatus(CONTAINER_STATUS.ENABLED);
         documentsTabState.setLoading(false);
         documentsTabState.setDocuments(documents);
-
         documentsTabState.setDocumentsCount(documentCount);
       } catch (error) {
         console.error(error);
@@ -190,6 +192,7 @@ export const useAppState = () => {
   };
 
   return {
+    window: { width, height },
     functions: {
       mongodb_connect,
       mongodb_find_collections,

@@ -54,6 +54,7 @@ export const MongoDbUrlBar = ({
   appStates,
 }: Readonly<{ appStates: AppState }>) => {
   const {
+    window: { height },
     functions: {
       mongodb_connect,
       mongodb_find_collections,

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Card, Modal } from "react-bootstrap";
-import ReactJson from "react-json-view";
 
 import { AppState } from "../App";
 import { MongodbServerInformation } from "../types";

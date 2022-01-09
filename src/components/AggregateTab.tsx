@@ -48,6 +48,7 @@ const AGGREGATE_OPERATIONS = [
 ];
 
 export const useAggregateTabState = () => {
+  const [documentWidth, setDocumentWidth] = useState(200);
   const [sampleCount, setSampleCount] = useState(2);
   const [stagesInput, setStagesInput] = useState<AggregationStageInput[]>([
     {
@@ -64,6 +65,8 @@ export const useAggregateTabState = () => {
   ]);
 
   return {
+    documentWidth,
+    setDocumentWidth,
     sampleCount,
     setSampleCount,
     stagesInput,
@@ -75,9 +78,12 @@ export const useAggregateTabState = () => {
 
 export const AggregateTab = ({
   appStates: {
+    window: { width, height },
     functions: { mongodb_aggregate_documents },
     connectionData,
     aggregateTabState: {
+      documentWidth,
+      setDocumentWidth,
       stagesInput,
       setStagesInput,
       stagesOutput,
@@ -89,7 +95,6 @@ export const AggregateTab = ({
 }: Readonly<{
   appStates: AppState;
 }>) => {
-  const { height } = useWindowDimensions();
   const [validated, setValidated] = useState(false);
 
   const handleSubmit = (event: {
@@ -111,58 +116,48 @@ export const AggregateTab = ({
       style={{
         display: "flex",
         flexDirection: "column",
-        rowGap: "10px",
+        rowGap: "5px",
         paddingTop: "5px",
         // TODO: This is mostly a hack
         minHeight: `${Math.max(0, height - 100)}px`,
       }}
     >
-      <div>
-        <Form
+      <Form
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+        noValidate
+        validated={validated}
+        onSubmit={handleSubmit}
+      >
+        <div
           style={{
             display: "flex",
             flexDirection: "row",
             columnGap: "5px",
-            justifyContent: "flex-start",
           }}
-          noValidate
-          validated={validated}
-          onSubmit={handleSubmit}
         >
-          <Form.Group
+          <div
             style={{
               display: "flex",
               flexDirection: "row",
-              justifyContent: "flex-start",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                }}
-              >
-                <InputGroup.Text>Sample count</InputGroup.Text>
-                <Form.Control
-                  required
-                  type="number"
-                  disabled={chain(stagesOutput)
-                    .some((s) => s.loading)
-                    .value()}
-                  onChange={(v) =>
-                    setSampleCount(Math.max(0, parseInt(v.target.value)))
-                  }
-                  value={sampleCount}
-                />
-              </div>
-            </div>
-          </Form.Group>
+            <InputGroup.Text>Sample count</InputGroup.Text>
+            <Form.Control
+              required
+              type="number"
+              disabled={chain(stagesOutput)
+                .some((s) => s.loading)
+                .value()}
+              onChange={(v) =>
+                setSampleCount(Math.max(0, parseInt(v.target.value)))
+              }
+              value={sampleCount}
+            />
+          </div>
           <Button
             disabled={chain(stagesOutput)
               .some((s) => s.loading)
@@ -183,8 +178,23 @@ export const AggregateTab = ({
           >
             Refresh
           </Button>
-        </Form>
-      </div>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            columnGap: "5px",
+          }}
+        >
+          <InputGroup.Text>Width</InputGroup.Text>
+          <Form.Range
+            onChange={(v) =>
+              setDocumentWidth(200 + (parseInt(v.target.value) * width) / 500)
+            }
+          />
+        </div>
+      </Form>
       {stagesInput
         .map((l, i) => ({ ...l, ...stagesOutput[i] }))
         .map(
@@ -195,7 +205,7 @@ export const AggregateTab = ({
             <Card
               key={rowIdx}
               style={{
-                padding: "10px",
+                padding: "5px",
                 overflowY: "auto",
               }}
             >
@@ -342,7 +352,9 @@ export const AggregateTab = ({
                           const copy = cloneDeep(stages);
                           try {
                             const json = JSON.stringify(
-                              JSON.parse(value.target.value)
+                              JSON.parse(value.target.value),
+                              null,
+                              2
                             );
                             copy[rowIdx].stageBody = json;
                           } catch (e) {
@@ -375,32 +387,29 @@ export const AggregateTab = ({
                             }}
                           >
                             {documents.map((document, colIdx) => (
-                              <div
+                              <Card
                                 key={colIdx}
                                 style={{
                                   display: "flex",
+                                  width: `${documentWidth}px`,
+                                  overflow: "auto",
                                 }}
                               >
-                                <Card
-                                  style={{
-                                    display: "flex",
-                                  }}
-                                >
-                                  <Card.Body>
-                                    <ReactJson
-                                      name={false}
-                                      src={document}
-                                      collapsed={1}
-                                      iconStyle="square"
-                                      indentWidth={2}
-                                      displayObjectSize={false}
-                                      displayDataTypes={false}
-                                      enableClipboard={false}
-                                      sortKeys={true}
-                                    />
-                                  </Card.Body>
-                                </Card>
-                              </div>
+                                <Card.Body>
+                                  <ReactJson
+                                    name={false}
+                                    src={document}
+                                    collapsed={1}
+                                    iconStyle="square"
+                                    indentWidth={2}
+                                    displayObjectSize={false}
+                                    displayDataTypes={true}
+                                    enableClipboard={false}
+                                    sortKeys={true}
+                                    onSelect={(v) => console.log("v", v)}
+                                  />
+                                </Card.Body>
+                              </Card>
                             ))}
                           </div>
                         )}
