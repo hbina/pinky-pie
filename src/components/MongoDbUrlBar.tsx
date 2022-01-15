@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Button, Dropdown, Spinner, Form, InputGroup } from "react-bootstrap";
 
-import { AppState } from "../App";
 import {
   CONTAINER_STATES,
   CollectionSpecification,
   DatabaseSpecification,
   CONTAINER_STATUS,
+  AppState,
 } from "../types";
 import { ServerInfo } from "./ServerInfo";
 
@@ -53,7 +53,6 @@ export const useMongodbUrlBarState = () => {
 export const MongoDbUrlBar = ({
   appStates,
 }: Readonly<{ appStates: AppState }>) => {
-  const HEIGHT = "30px";
   const {
     functions: {
       mongodb_connect,
@@ -76,14 +75,15 @@ export const MongoDbUrlBar = ({
       databases,
       collections,
     },
+    documentsTabState: { setPage },
     serverInfoState: { setShow },
+    schemaTabState: { setDocuments, setDocumentsFilter },
   } = appStates;
   return (
     <div
       style={{
         display: "flex",
         justifyContent: "space-between",
-        height: HEIGHT,
       }}
     >
       <div
@@ -91,7 +91,6 @@ export const MongoDbUrlBar = ({
           display: "flex",
           justifyContent: "flex-start",
           columnGap: "5px",
-          height: HEIGHT,
         }}
       >
         <Form
@@ -100,7 +99,6 @@ export const MongoDbUrlBar = ({
             flexDirection: "row",
             columnGap: "5px",
             justifyContent: "flex-start",
-            height: HEIGHT,
           }}
           noValidate
         >
@@ -108,14 +106,12 @@ export const MongoDbUrlBar = ({
             style={{
               display: "flex",
               flexDirection: "row",
-              width: "300px",
-              height: HEIGHT,
             }}
           >
             <InputGroup.Text
               style={{
                 width: "110px",
-                height: HEIGHT,
+                height: "30px",
               }}
             >
               mongodb://
@@ -123,7 +119,7 @@ export const MongoDbUrlBar = ({
             <Form.Control
               style={{
                 width: "100px",
-                height: HEIGHT,
+                height: "30px",
               }}
               required
               type="text"
@@ -134,7 +130,7 @@ export const MongoDbUrlBar = ({
             <Form.Control
               style={{
                 width: "90px",
-                height: HEIGHT,
+                height: "30px",
               }}
               required
               type="number"
@@ -149,14 +145,13 @@ export const MongoDbUrlBar = ({
             display: "flex",
             flexDirection: "row",
             columnGap: "5px",
-            height: HEIGHT,
           }}
         >
           <Button
             style={{
               display: "flex",
               alignItems: "center",
-              height: HEIGHT,
+              height: "30px",
             }}
             variant="primary"
             onClick={() => {
@@ -188,7 +183,7 @@ export const MongoDbUrlBar = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  height: HEIGHT,
+                  height: "30px",
                 }}
               >
                 {databaseName}
@@ -221,7 +216,7 @@ export const MongoDbUrlBar = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  height: HEIGHT,
+                  height: "30px",
                 }}
               >
                 {collectionName}
@@ -231,7 +226,10 @@ export const MongoDbUrlBar = ({
                   <Dropdown.Item
                     key={name}
                     onClick={() => {
+                      setPage(0);
                       setCollectionName(name);
+                      setDocuments([]);
+                      setDocumentsFilter({});
                       mongodb_find_documents({
                         databaseName,
                         collectionName: name,

@@ -1,4 +1,5 @@
 import React from "react";
+import { useAppState } from "./util";
 
 export type ReactSetState<T> = React.Dispatch<React.SetStateAction<T>>;
 export type ReactState<T> = [T, ReactSetState<T>];
@@ -86,3 +87,5 @@ export enum CONTAINER_STATUS {
   ENABLED,
   DISABLED,
 }
+
+export type AppState = ReturnType<typeof useAppState>;

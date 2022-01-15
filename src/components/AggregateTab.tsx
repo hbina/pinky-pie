@@ -9,9 +9,12 @@ import {
   Spinner,
 } from "react-bootstrap";
 import ReactJson from "react-json-view";
-import { AppState } from "../App";
 
-import { AggregationStageInput, AggregationStageOutput } from "../types";
+import {
+  AggregationStageInput,
+  AggregationStageOutput,
+  AppState,
+} from "../types";
 
 const AGGREGATE_OPERATIONS = [
   "$addFields",

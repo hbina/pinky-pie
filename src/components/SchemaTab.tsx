@@ -7,10 +7,10 @@ import {
   InputGroup,
   ProgressBar,
   Spinner,
+  Stack,
 } from "react-bootstrap";
 
-import { AppState } from "../App";
-import { MongodbAnalyzeDocumentOutput } from "../types";
+import { MongodbAnalyzeDocumentOutput, AppState } from "../types";
 
 export const useSchemaTabState = () => {
   const [loading, setLoading] = useState(false);
@@ -46,18 +46,16 @@ export const SchemaTab = ({
   appStates: AppState;
 }>) => {
   return (
-    <div
+    <Stack
+      direction="vertical"
       style={{
-        display: "flex",
-        flexDirection: "column",
         paddingTop: "5px",
         rowGap: "5px",
       }}
     >
-      <div
+      <Stack
+        direction="horizontal"
         style={{
-          display: "flex",
-          flexDirection: "row",
           columnGap: "5px",
         }}
       >
@@ -88,11 +86,10 @@ export const SchemaTab = ({
         >
           Analyze
         </Button>
-      </div>
-      <div
+      </Stack>
+      <Stack
+        direction="vertical"
         style={{
-          display: "flex",
-          flexDirection: "column",
           rowGap: "5px",
         }}
       >
@@ -140,7 +137,7 @@ export const SchemaTab = ({
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Stack>
   );
 };

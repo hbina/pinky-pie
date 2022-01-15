@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Card, Modal } from "react-bootstrap";
 
-import { AppState } from "../App";
-import { MongodbServerInformation } from "../types";
+import { MongodbServerInformation, AppState } from "../types";
 
 export const useServerInfoState = () => {
   const [show, setShow] = useState(false);

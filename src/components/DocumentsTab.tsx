@@ -11,8 +11,7 @@ import {
   Stack,
 } from "react-bootstrap";
 
-import { AppState } from "../App";
-import { BsonDocument, CONTAINER_STATUS } from "../types";
+import { BsonDocument, CONTAINER_STATUS, AppState } from "../types";
 
 export const useDocumentsTabState = () => {
   const [documents, setDocuments] = useState<BsonDocument[]>([]);
@@ -76,22 +75,6 @@ export const DocumentsTab = ({
     },
   },
 }: Readonly<{ appStates: AppState }>) => {
-  const [validated, setValidated] = useState(false);
-
-  const handleSubmit = (event: {
-    currentTarget: any;
-    preventDefault: () => void;
-    stopPropagation: () => void;
-  }) => {
-    const form = event.currentTarget;
-    if (form.checkValidity() === false) {
-      // event.preventDefault();
-      // event.stopPropagation();
-    }
-
-    setValidated(true);
-  };
-
   return (
     <div
       style={{
@@ -102,157 +85,111 @@ export const DocumentsTab = ({
       }}
     >
       {/* Document page, perPage and depth */}
-      <Form
+      <div
         style={{
           display: "flex",
           flexDirection: "row",
           justifyContent: "space-between",
-          height: "30px",
         }}
-        noValidate
-        validated={validated}
-        onSubmit={handleSubmit}
       >
-        <Stack
+        <div
           style={{
             display: "flex",
             flexDirection: "row",
             columnGap: "5px",
             justifyContent: "flex-start",
-            height: "30px",
           }}
         >
-          <Form.Group
+          <div
             style={{
               display: "flex",
               flexDirection: "row",
-              justifyContent: "flex-start",
-              height: "30px",
             }}
           >
-            <div
+            <InputGroup.Text
               style={{
-                display: "flex",
-                flexDirection: "column",
                 height: "30px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  height: "30px",
-                }}
-              >
-                <InputGroup.Text
-                  style={{
-                    height: "30px",
-                  }}
-                >
-                  Page
-                </InputGroup.Text>
-                <Form.Control
-                  style={{
-                    height: "30px",
-                  }}
-                  required
-                  type="number"
-                  disabled={loading}
-                  onChange={(v) =>
-                    setPage(Math.max(0, parseInt(v.target.value)))
-                  }
-                  value={page}
-                />
-              </div>
-            </div>
-          </Form.Group>
-          <Form.Group
+              Page
+            </InputGroup.Text>
+            <Form.Control
+              style={{
+                width: "100px",
+                height: "30px",
+              }}
+              required
+              type="number"
+              disabled={loading}
+              onChange={(v) =>
+                v.target.value === ""
+                  ? setPage(0)
+                  : setPage(Math.max(0, parseInt(v.target.value)))
+              }
+              value={page === 10 ? 50 : page}
+            />
+          </div>
+          <div
             style={{
               display: "flex",
               flexDirection: "row",
               height: "30px",
             }}
           >
-            <div
+            <InputGroup.Text
               style={{
-                display: "flex",
-                flexDirection: "column",
                 height: "30px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  height: "30px",
-                }}
-              >
-                <InputGroup.Text
-                  style={{
-                    height: "30px",
-                  }}
-                >
-                  Per page
-                </InputGroup.Text>
-                <Form.Control
-                  style={{
-                    height: "30px",
-                  }}
-                  required
-                  type="number"
-                  disabled={loading}
-                  onChange={(v) =>
-                    setPerPage(Math.max(0, parseInt(v.target.value)))
-                  }
-                  value={perPage}
-                />
-              </div>
-            </div>
-          </Form.Group>
-          <Form.Group
+              Per page
+            </InputGroup.Text>
+            <Form.Control
+              style={{
+                width: "100px",
+                height: "30px",
+              }}
+              required
+              type="number"
+              disabled={loading}
+              onChange={(v) =>
+                v.target.value === ""
+                  ? setPerPage(0)
+                  : setPerPage(Math.max(0, parseInt(v.target.value)))
+              }
+              value={perPage}
+            />
+          </div>
+          <div
             style={{
               display: "flex",
               flexDirection: "row",
               height: "30px",
             }}
           >
-            <div
+            <InputGroup.Text
               style={{
-                display: "flex",
-                flexDirection: "column",
                 height: "30px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  height: "30px",
-                }}
-              >
-                <InputGroup.Text
-                  style={{
-                    height: "30px",
-                  }}
-                >
-                  Depth
-                </InputGroup.Text>
-                <Form.Control
-                  style={{
-                    height: "30px",
-                  }}
-                  required
-                  type="number"
-                  disabled={loading}
-                  onChange={(v) =>
-                    setJsonDepth(Math.max(0, parseInt(v.target.value)))
-                  }
-                  value={jsonDepth}
-                />
-              </div>
-            </div>
-          </Form.Group>
-        </Stack>
+              Depth
+            </InputGroup.Text>
+            <Form.Control
+              style={{
+                width: "100px",
+                height: "30px",
+              }}
+              required
+              type="number"
+              disabled={loading}
+              onChange={(v) =>
+                v.target.value === ""
+                  ? setJsonDepth(0)
+                  : setJsonDepth(Math.max(0, parseInt(v.target.value)))
+              }
+              value={jsonDepth}
+            />
+          </div>
+        </div>
         <Button
           style={{
             display: "flex",
@@ -275,36 +212,33 @@ export const DocumentsTab = ({
         >
           Query
         </Button>
-      </Form>
+      </div>
       {/*
       1. Document filters, projections and sort
       2. Pagination on the right.
       */}
-      <Form
+      <div
         style={{
           display: "flex",
           flexDirection: "row",
           justifyContent: "space-between",
-          height: "90px",
-          overflow: "auto",
+          columnGap: "5px",
         }}
       >
         <Stack direction="vertical">
-          <Form.Group
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              height: "30px",
-            }}
-          >
+          <Stack direction="horizontal">
             <InputGroup.Text
               style={{
                 width: "120px",
+                height: "30px",
               }}
             >
               Filter
             </InputGroup.Text>
             <FormControl
+              style={{
+                height: "30px",
+              }}
               placeholder={JSON.stringify({ key: "value" })}
               disabled={loading}
               onChange={(e) => {
@@ -316,22 +250,20 @@ export const DocumentsTab = ({
                 }
               }}
             />
-          </Form.Group>
-          <Form.Group
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              height: "30px",
-            }}
-          >
+          </Stack>
+          <Stack direction="horizontal">
             <InputGroup.Text
               style={{
                 width: "120px",
+                height: "30px",
               }}
             >
               Projection
             </InputGroup.Text>
             <FormControl
+              style={{
+                height: "30px",
+              }}
               placeholder={JSON.stringify({ key: "value" })}
               disabled={loading}
               onChange={(e) => {
@@ -343,22 +275,20 @@ export const DocumentsTab = ({
                 }
               }}
             />
-          </Form.Group>
-          <Form.Group
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              height: "30px",
-            }}
-          >
+          </Stack>
+          <Stack direction="horizontal">
             <InputGroup.Text
               style={{
                 width: "120px",
+                height: "30px",
               }}
             >
               Sort
             </InputGroup.Text>
             <FormControl
+              style={{
+                height: "30px",
+              }}
               placeholder={JSON.stringify({ key: "value" })}
               disabled={loading}
               onChange={(e) => {
@@ -370,26 +300,21 @@ export const DocumentsTab = ({
                 }
               }}
             />
-          </Form.Group>
+          </Stack>
         </Stack>
         <Form.Group
           style={{
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            columnGap: "5px",
-            padding: "5px",
-            width: "15%",
           }}
         >
           <Pagination
             style={{
               display: "flex",
-              height: "30px",
             }}
           >
             <Pagination.Prev
+              disabled={loading}
               style={{
                 display: "flex",
                 height: "30px",
@@ -408,6 +333,7 @@ export const DocumentsTab = ({
               }}
             />
             <Pagination.Next
+              disabled={loading}
               style={{
                 display: "flex",
                 height: "30px",
@@ -428,16 +354,8 @@ export const DocumentsTab = ({
               }}
             />
           </Pagination>
-          <p
-            style={{
-              display: "flex",
-            }}
-          >
-            {perPage * page + 1} -
-            {Math.min(perPage * (page + 1), documentsCount)} of {documentsCount}
-          </p>
         </Form.Group>
-      </Form>
+      </div>
       {/* List of documents */}
       <div
         style={{
