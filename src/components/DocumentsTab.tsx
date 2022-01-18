@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactJson from "react-json-view";
 import {
   Card,
@@ -7,74 +7,137 @@ import {
   FormControl,
   Pagination,
   Form,
-  Button,
   Stack,
 } from "react-bootstrap";
 
-import { BsonDocument, CONTAINER_STATUS, AppState } from "../types";
+import {
+  BsonDocument,
+  CONTAINER_STATUS,
+  AppState,
+  CONTAINER_STATES,
+} from "../types";
+import { invoke } from "@tauri-apps/api";
+
+export type DocumentsTabProps = {
+  documents: BsonDocument[];
+  documentsCount: number;
+  loading: CONTAINER_STATES;
+  documentsFilter: Record<string, unknown>;
+  documentsProjection: Record<string, unknown>;
+  documentsSort: Record<string, unknown>;
+  perPage: number;
+  page: number;
+  jsonDepth: number;
+  queryButtonStatus: CONTAINER_STATUS;
+};
+
+export const DOCUMENTS_TAB_INITIATE_STATE: DocumentsTabProps = {
+  documents: [],
+  documentsCount: 0,
+  loading: CONTAINER_STATES.UNLOADED,
+  documentsFilter: {},
+  documentsProjection: {},
+  documentsSort: {},
+  perPage: 5,
+  page: 0,
+  jsonDepth: 1,
+  queryButtonStatus: CONTAINER_STATUS.ENABLED,
+};
 
 export const useDocumentsTabState = () => {
-  const [documents, setDocuments] = useState<BsonDocument[]>([]);
-  const [documentsCount, setDocumentsCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [documentsFilter, setDocumentsFilter] = useState({});
-  const [documentsProjection, setDocumentsProjection] = useState({});
-  const [documentsSort, setDocumentsSort] = useState({});
-  const [perPage, setPerPage] = useState(5);
-  const [page, setPage] = useState(0);
-  const [jsonDepth, setJsonDepth] = useState(1);
-  const [queryButtonStatus, setQueryButtonStatus] = useState(
-    CONTAINER_STATUS.ENABLED
+  const [state, setState] = useState<DocumentsTabProps>(
+    DOCUMENTS_TAB_INITIATE_STATE
   );
 
   return {
-    documents,
-    setDocuments,
-    documentsCount,
-    setDocumentsCount,
-    loading,
-    setLoading,
-    documentsFilter,
-    setDocumentsFilter,
-    documentsProjection,
-    setDocumentsProjection,
-    documentsSort,
-    setDocumentsSort,
-    perPage,
-    setPerPage,
-    page,
-    setPage,
-    jsonDepth,
-    setJsonDepth,
-    queryButtonStatus,
-    setQueryButtonStatus,
+    state,
+    setState,
   };
 };
 
 export const DocumentsTab = ({
   appStates: {
-    window: { width, height },
-    functions: { mongodb_find_documents },
-    connectionData: { databaseName, collectionName },
+    window: { height },
+    connectionData: {
+      state: { connectionState, databaseName, collectionName },
+    },
     documentsTabState: {
-      perPage,
-      setPerPage,
-      page,
-      setPage,
-      documentsCount,
-      loading,
-      documents,
-      setDocumentsFilter,
-      setDocumentsProjection,
-      setDocumentsSort,
-      documentsFilter,
-      documentsSort,
-      documentsProjection,
-      jsonDepth,
-      setJsonDepth,
+      state: {
+        perPage,
+        page,
+        documentsCount,
+        loading,
+        documents,
+        documentsFilter,
+        documentsSort,
+        documentsProjection,
+        jsonDepth,
+      },
+      setState,
     },
   },
 }: Readonly<{ appStates: AppState }>) => {
+  const inputDisabled = loading === CONTAINER_STATES.LOADING;
+
+  useEffect(() => {
+    const f = async () => {
+      if (loading === CONTAINER_STATES.UNLOADED) {
+        try {
+          setState((state) => ({
+            ...state,
+            queryButtonStatus: CONTAINER_STATUS.DISABLED,
+            loading: CONTAINER_STATES.LOADING,
+            documents: [],
+            documentsCount: 0,
+          }));
+          // NOTE: This 2 promises should be split up
+          const documents = await invoke<BsonDocument[]>(
+            "mongodb_find_documents",
+            {
+              databaseName,
+              collectionName,
+              page,
+              perPage,
+              documentsFilter,
+              documentsProjection,
+              documentsSort,
+            }
+          );
+          const documentsCount = await invoke<number>(
+            "mongodb_count_documents",
+            {
+              databaseName,
+              collectionName,
+              documentsFilter,
+            }
+          );
+          setState((state) => ({
+            ...state,
+            queryButtonStatus: CONTAINER_STATUS.ENABLED,
+            loading: CONTAINER_STATES.LOADED,
+            documents,
+            documentsCount,
+          }));
+        } catch (error) {
+          console.error(error);
+          setState(DOCUMENTS_TAB_INITIATE_STATE);
+        }
+      }
+    };
+    f();
+  }, [
+    connectionState,
+    databaseName,
+    collectionName,
+    documentsFilter,
+    documentsProjection,
+    documentsSort,
+    page,
+    perPage,
+    loading,
+    setState,
+  ]);
+
   return (
     <div
       style={{
@@ -120,13 +183,19 @@ export const DocumentsTab = ({
               }}
               required
               type="number"
-              disabled={loading}
+              disabled={inputDisabled}
               onChange={(v) =>
                 v.target.value === ""
-                  ? setPage(0)
-                  : setPage(Math.max(0, parseInt(v.target.value)))
+                  ? setState((state) => ({
+                      ...state,
+                      page: 0,
+                    }))
+                  : setState((state) => ({
+                      ...state,
+                      page: Math.max(0, parseInt(v.target.value)),
+                    }))
               }
-              value={page === 10 ? 50 : page}
+              value={page}
             />
           </div>
           <div
@@ -150,11 +219,17 @@ export const DocumentsTab = ({
               }}
               required
               type="number"
-              disabled={loading}
+              disabled={inputDisabled}
               onChange={(v) =>
                 v.target.value === ""
-                  ? setPerPage(0)
-                  : setPerPage(Math.max(0, parseInt(v.target.value)))
+                  ? setState((state) => ({
+                      ...state,
+                      perPage: 0,
+                    }))
+                  : setState((state) => ({
+                      ...state,
+                      perPage: Math.max(0, parseInt(v.target.value)),
+                    }))
               }
               value={perPage}
             />
@@ -180,38 +255,39 @@ export const DocumentsTab = ({
               }}
               required
               type="number"
-              disabled={loading}
+              disabled={inputDisabled}
               onChange={(v) =>
                 v.target.value === ""
-                  ? setJsonDepth(0)
-                  : setJsonDepth(Math.max(0, parseInt(v.target.value)))
+                  ? setState((state) => ({
+                      ...state,
+                      jsonDepth: 0,
+                    }))
+                  : setState((state) => ({
+                      ...state,
+                      jsonDepth: Math.max(0, parseInt(v.target.value)),
+                    }))
               }
               value={jsonDepth}
             />
           </div>
         </div>
-        <Button
+        <button
           style={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             height: "30px",
           }}
-          disabled={loading}
+          disabled={inputDisabled}
           onClick={() =>
-            mongodb_find_documents({
-              databaseName,
-              collectionName,
-              page,
-              perPage,
-              documentsFilter,
-              documentsSort,
-              documentsProjection,
-            })
+            setState((state) => ({
+              ...state,
+              loading: CONTAINER_STATES.UNLOADED,
+            }))
           }
         >
           Query
-        </Button>
+        </button>
       </div>
       {/*
       1. Document filters, projections and sort
@@ -239,14 +315,20 @@ export const DocumentsTab = ({
               style={{
                 height: "30px",
               }}
-              placeholder={JSON.stringify({ key: "value" })}
-              disabled={loading}
+              placeholder={JSON.stringify({ key: "value" }, null, 2)}
+              disabled={inputDisabled}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
-                  setDocumentsFilter(filter);
+                  setState((state) => ({
+                    ...state,
+                    documentsFilter: filter,
+                  }));
                 } catch (e) {
-                  setDocumentsFilter({});
+                  setState((state) => ({
+                    ...state,
+                    documentsFilter: {},
+                  }));
                 }
               }}
             />
@@ -264,14 +346,20 @@ export const DocumentsTab = ({
               style={{
                 height: "30px",
               }}
-              placeholder={JSON.stringify({ key: "value" })}
-              disabled={loading}
+              placeholder={JSON.stringify({ key: "value" }, null, 2)}
+              disabled={inputDisabled}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
-                  setDocumentsProjection(filter);
+                  setState((state) => ({
+                    ...state,
+                    documentsProjection: filter,
+                  }));
                 } catch (e) {
-                  setDocumentsProjection({});
+                  setState((state) => ({
+                    ...state,
+                    documentsProjection: {},
+                  }));
                 }
               }}
             />
@@ -289,14 +377,20 @@ export const DocumentsTab = ({
               style={{
                 height: "30px",
               }}
-              placeholder={JSON.stringify({ key: "value" })}
-              disabled={loading}
+              placeholder={JSON.stringify({ key: "value" }, null, 2)}
+              disabled={inputDisabled}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
-                  setDocumentsSort(filter);
+                  setState((state) => ({
+                    ...state,
+                    documentsSort: filter,
+                  }));
                 } catch (e) {
-                  setDocumentsSort({});
+                  setState((state) => ({
+                    ...state,
+                    documentsSort: {},
+                  }));
                 }
               }}
             />
@@ -314,44 +408,33 @@ export const DocumentsTab = ({
             }}
           >
             <Pagination.Prev
-              disabled={loading}
+              disabled={inputDisabled}
               style={{
                 display: "flex",
                 height: "30px",
               }}
-              onClick={() => {
-                setPage((page) => Math.max(0, page - 1));
-                mongodb_find_documents({
-                  databaseName,
-                  collectionName,
-                  page,
-                  perPage,
-                  documentsFilter,
-                  documentsSort,
-                  documentsProjection,
-                });
-              }}
+              onClick={() =>
+                setState((state) => ({
+                  ...state,
+                  page: Math.max(0, state.page - 1),
+                }))
+              }
             />
             <Pagination.Next
-              disabled={loading}
+              disabled={inputDisabled}
               style={{
                 display: "flex",
                 height: "30px",
               }}
-              onClick={() => {
-                setPage((page) =>
-                  Math.min(Math.floor(documentsCount / perPage), page + 1)
-                );
-                mongodb_find_documents({
-                  databaseName,
-                  collectionName,
-                  page,
-                  perPage,
-                  documentsFilter,
-                  documentsSort,
-                  documentsProjection,
-                });
-              }}
+              onClick={() =>
+                setState((state) => ({
+                  ...state,
+                  page: Math.min(
+                    Math.floor(documentsCount / perPage),
+                    page + 1
+                  ),
+                }))
+              }
             />
           </Pagination>
         </Form.Group>
@@ -366,7 +449,31 @@ export const DocumentsTab = ({
           overflow: "auto",
         }}
       >
-        {loading ? (
+        {loading === CONTAINER_STATES.UNLOADED && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "stretch",
+            }}
+          >
+            Please run the query
+          </div>
+        )}
+        {loading === CONTAINER_STATES.LOADING && (
+          <div
+            style={{
+              display: "flex",
+              width: "100%",
+              justifyContent: "center",
+              alignItems: "stretch",
+              height: `${height * 0.6}px`,
+            }}
+          >
+            <Spinner animation="border" role="status" />
+          </div>
+        )}
+        {loading === CONTAINER_STATES.LOADING && (
           <div
             style={{
               display: "flex",
@@ -378,7 +485,8 @@ export const DocumentsTab = ({
           >
             <Spinner animation="border" role="status" />
           </div>
-        ) : (
+        )}
+        {loading === CONTAINER_STATES.LOADED && (
           <div
             style={{
               display: "flex",

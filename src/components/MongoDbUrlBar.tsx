@@ -1,52 +1,46 @@
-import { useState } from "react";
-import { Button, Dropdown, Spinner, Form, InputGroup } from "react-bootstrap";
+import { invoke } from "@tauri-apps/api";
+import React, { useState, useEffect } from "react";
+import { Spinner, Form, InputGroup, Stack } from "react-bootstrap";
 
 import {
   CONTAINER_STATES,
   CollectionSpecification,
   DatabaseSpecification,
-  CONTAINER_STATUS,
   AppState,
 } from "../types";
 import { ServerInfo } from "./ServerInfo";
 
-export const useMongodbUrlBarState = () => {
-  const [url, setUrl] = useState("localhost");
-  const [port, setPort] = useState(27017);
-  const [urlConnected, setUrlConnected] = useState(false);
-  const [databases, setDatabases] = useState<DatabaseSpecification[]>([]);
-  const [collections, setCollections] = useState<CollectionSpecification[]>([]);
-  const [databasesLoading, setDatabasesState] = useState(
-    CONTAINER_STATES.HIDDEN
-  );
-  const [collectionsLoading, setCollectionsLoading] = useState(
-    CONTAINER_STATES.HIDDEN
-  );
-  const [databaseName, setDatabaseName] = useState("");
-  const [collectionName, setCollectionName] = useState("");
-  const [buttonStatus, setButtonStatus] = useState(CONTAINER_STATUS.ENABLED);
+export type MongodbUrlBarProps = {
+  url: string;
+  port: number;
+  connectionState: CONTAINER_STATES;
+  databases: DatabaseSpecification[];
+  databasesLoading: CONTAINER_STATES;
+  databaseName: string | undefined;
+  collections: CollectionSpecification[];
+  collectionsLoading: CONTAINER_STATES;
+  collectionName: string | undefined;
+};
 
+export const MONGODB_URL_BAR_INITIAL_STATE: MongodbUrlBarProps = {
+  url: "localhost",
+  port: 27017,
+  connectionState: CONTAINER_STATES.UNLOADED,
+  databases: [],
+  databasesLoading: CONTAINER_STATES.UNLOADED,
+  databaseName: undefined,
+  collections: [],
+  collectionsLoading: CONTAINER_STATES.UNLOADED,
+  collectionName: undefined,
+};
+
+export const useMongodbUrlBarState = () => {
+  const [state, setState] = useState<MongodbUrlBarProps>(
+    MONGODB_URL_BAR_INITIAL_STATE
+  );
   return {
-    url,
-    setUrl,
-    port,
-    setPort,
-    urlConnected,
-    setUrlConnected,
-    databases,
-    setDatabases,
-    databasesLoading,
-    setDatabasesState,
-    collectionsLoading,
-    setCollectionsLoading,
-    databaseName,
-    setDatabaseName,
-    collectionName,
-    setCollectionName,
-    collections,
-    setCollections,
-    buttonStatus,
-    setButtonStatus,
+    state,
+    setState,
   };
 };
 
@@ -54,201 +48,257 @@ export const MongoDbUrlBar = ({
   appStates,
 }: Readonly<{ appStates: AppState }>) => {
   const {
-    functions: {
-      mongodb_connect,
-      mongodb_find_collections,
-      mongodb_find_documents,
-      mongodb_server_description,
-    },
     connectionData: {
-      url,
-      setUrl,
-      port,
-      setPort,
-      urlConnected,
-      databaseName,
-      setDatabaseName,
-      collectionName,
-      setCollectionName,
-      databasesLoading,
-      collectionsLoading,
-      databases,
-      collections,
+      state: {
+        url,
+        port,
+        connectionState,
+        databases,
+        databasesLoading,
+        databaseName,
+        collections,
+        collectionsLoading,
+        collectionName,
+      },
+      setState,
     },
-    documentsTabState: { setPage },
-    serverInfoState: { setShow },
-    schemaTabState: { setDocuments, setDocumentsFilter },
+    serverInfoState: { setState: setServerInfoState },
   } = appStates;
+
+  useEffect(() => {
+    const f = async () => {
+      try {
+        if (connectionState === CONTAINER_STATES.UNLOADED) {
+          setState((state) => ({
+            ...state,
+            connectionState: CONTAINER_STATES.LOADING,
+            databases: [],
+            databasesLoading: CONTAINER_STATES.LOADING,
+            databaseName: undefined,
+            collections: [],
+            collectionsLoading: CONTAINER_STATES.UNLOADED,
+            collectionName: undefined,
+          }));
+          const databases = await invoke<DatabaseSpecification[]>(
+            "mongodb_connect",
+            {
+              url,
+              port,
+            }
+          );
+          setState((state) => ({
+            ...state,
+            connectionState: CONTAINER_STATES.LOADED,
+            databases,
+            databasesLoading: CONTAINER_STATES.LOADED,
+            databaseName: databases[0] ? databases[0].name : undefined,
+          }));
+        }
+      } catch (error) {
+        console.error(error);
+        setState(MONGODB_URL_BAR_INITIAL_STATE);
+      }
+    };
+    f();
+  }, [url, port, connectionState, setState]);
+
+  useEffect(() => {
+    const f = async () => {
+      try {
+        if (collectionsLoading === CONTAINER_STATES.UNLOADED && databaseName) {
+          setState((state) => ({
+            ...state,
+            collectionsLoading: CONTAINER_STATES.LOADING,
+            collections: [],
+            collectionName: undefined,
+          }));
+          const collections = await invoke<CollectionSpecification[]>(
+            "mongodb_find_collections",
+            {
+              databaseName,
+            }
+          );
+          setState((state) => ({
+            ...state,
+            collectionsLoading: CONTAINER_STATES.LOADED,
+            collections: collections,
+            collectionName: collections[0] ? collections[0].name : undefined,
+          }));
+        }
+      } catch (error) {
+        console.error(error);
+        setState(MONGODB_URL_BAR_INITIAL_STATE);
+      }
+    };
+    f();
+  }, [collectionsLoading, databaseName, setState]);
+
   return (
-    <div
+    <Stack
+      direction="horizontal"
       style={{
         display: "flex",
         justifyContent: "space-between",
       }}
     >
-      <div
+      <Stack
+        direction="horizontal"
         style={{
           display: "flex",
           justifyContent: "flex-start",
           columnGap: "5px",
         }}
       >
-        <Form
+        <Stack
+          direction="horizontal"
           style={{
             display: "flex",
-            flexDirection: "row",
             columnGap: "5px",
             justifyContent: "flex-start",
           }}
-          noValidate
         >
-          <div
+          <InputGroup.Text
             style={{
-              display: "flex",
-              flexDirection: "row",
+              width: "110px",
+              height: "30px",
             }}
           >
-            <InputGroup.Text
-              style={{
-                width: "110px",
-                height: "30px",
-              }}
-            >
-              mongodb://
-            </InputGroup.Text>
-            <Form.Control
-              style={{
-                width: "100px",
-                height: "30px",
-              }}
-              required
-              type="text"
-              value={url}
-              placeholder="localhost"
-              onChange={(e) => setUrl(e.target.value)}
-            />
-            <Form.Control
-              style={{
-                width: "90px",
-                height: "30px",
-              }}
-              required
-              type="number"
-              value={port}
-              placeholder="27017"
-              onChange={(e) => setPort(parseInt(e.target.value))}
-            />
-          </div>
-        </Form>
-        <div
+            mongodb://
+          </InputGroup.Text>
+          <Form.Control
+            style={{
+              width: "100px",
+              height: "30px",
+            }}
+            required
+            type="text"
+            value={url}
+            onChange={(e) =>
+              setState((state) => ({
+                ...state,
+                url: e.target.value,
+              }))
+            }
+          />
+          <Form.Control
+            style={{
+              width: "90px",
+              height: "30px",
+            }}
+            required
+            type="number"
+            value={port}
+            onChange={(e) =>
+              setState((state) => ({
+                ...state,
+                port: parseInt(e.target.value),
+              }))
+            }
+          />
+        </Stack>
+        <Stack
+          direction="horizontal"
           style={{
             display: "flex",
-            flexDirection: "row",
             columnGap: "5px",
           }}
         >
-          <Button
+          {/* CONNECT BUTTON */}
+          <button
+            disabled={connectionState === CONTAINER_STATES.LOADING}
             style={{
               display: "flex",
               alignItems: "center",
               height: "30px",
             }}
-            variant="primary"
-            onClick={() => {
-              if (urlConnected) {
-                setShow(true);
-                mongodb_server_description({
-                  mongodbUrl: url,
-                  mongodbPort: port,
-                });
-              } else {
-                mongodb_connect({
-                  mongodbUrl: url,
-                  mongodbPort: port,
-                });
-              }
-            }}
+            onClick={() =>
+              setState((state) => ({
+                ...state,
+                connectionState: CONTAINER_STATES.UNLOADED,
+              }))
+            }
           >
-            {urlConnected ? "Server Info" : "Connect"}
-          </Button>
-          <ServerInfo appStates={appStates} />
-          {databasesLoading === CONTAINER_STATES.LOADING && (
-            <Spinner animation="border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </Spinner>
-          )}
-          {databasesLoading === CONTAINER_STATES.LOADED && (
-            <Dropdown>
-              <Dropdown.Toggle
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  height: "30px",
+            Connect
+          </button>
+          {/* DATABASES SELECT */}
+          <>
+            {databasesLoading === CONTAINER_STATES.LOADING && (
+              <Spinner animation="border" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </Spinner>
+            )}
+            {databasesLoading === CONTAINER_STATES.LOADED &&
+              databases.length === 0 && <div>No databases available</div>}
+            {databasesLoading === CONTAINER_STATES.LOADED &&
+              databases.length !== 0 && (
+                <select
+                  name={databaseName ?? "No databse selected"}
+                  onChange={(value) => {
+                    const name = value.target.value;
+                    setState((state) => ({
+                      ...state,
+                      databaseName: name,
+                      databasesLoading: CONTAINER_STATES.UNLOADED,
+                    }));
+                  }}
+                >
+                  {databases.map(({ name }) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              )}
+          </>
+          {/* COLLECTIONS SELECT */}
+          <>
+            {collectionsLoading === CONTAINER_STATES.LOADING && (
+              <Spinner animation="border" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </Spinner>
+            )}
+            {collectionsLoading === CONTAINER_STATES.LOADED && (
+              <select
+                name={collectionName ?? "No collection selected"}
+                onChange={(value) => {
+                  const name = value.target.value;
+                  setState((state) => ({
+                    ...state,
+                    collectionName: name,
+                    databasesLoading: CONTAINER_STATES.UNLOADED,
+                  }));
                 }}
               >
-                {databaseName}
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                {databases.map(({ name }) => (
-                  <Dropdown.Item
-                    key={name}
-                    onClick={() => {
-                      setDatabaseName(name);
-                      mongodb_find_collections({
-                        databaseName: name,
-                      });
-                    }}
-                  >
-                    {name}
-                  </Dropdown.Item>
-                ))}
-              </Dropdown.Menu>
-            </Dropdown>
-          )}
-          {collectionsLoading === CONTAINER_STATES.LOADING && (
-            <Spinner animation="border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </Spinner>
-          )}
-          {collectionsLoading === CONTAINER_STATES.LOADED && (
-            <Dropdown>
-              <Dropdown.Toggle
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  height: "30px",
-                }}
-              >
-                {collectionName}
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
                 {collections.map(({ name }) => (
-                  <Dropdown.Item
-                    key={name}
-                    onClick={() => {
-                      setPage(0);
-                      setCollectionName(name);
-                      setDocuments([]);
-                      setDocumentsFilter({});
-                      mongodb_find_documents({
-                        databaseName,
-                        collectionName: name,
-                        page: 0,
-                        perPage: 20,
-                        documentsFilter: {},
-                        documentsSort: {},
-                        documentsProjection: {},
-                      });
-                    }}
-                  >
+                  <option key={name} value={name}>
                     {name}
-                  </Dropdown.Item>
+                  </option>
                 ))}
-              </Dropdown.Menu>
-            </Dropdown>
-          )}
-        </div>
-      </div>
-    </div>
+              </select>
+            )}
+          </>
+          {/* SERVER INFO BUTTON */}
+          <>
+            <button
+              hidden={connectionState !== CONTAINER_STATES.LOADED}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                height: "30px",
+              }}
+              onClick={() =>
+                setServerInfoState((state) => ({
+                  ...state,
+                  visible: true,
+                }))
+              }
+            >
+              Server Info
+            </button>
+            <ServerInfo appStates={appStates} />
+          </>
+        </Stack>
+      </Stack>
+    </Stack>
   );
 };

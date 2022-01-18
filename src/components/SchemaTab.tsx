@@ -1,5 +1,6 @@
+import { invoke } from "@tauri-apps/api";
 import { chain } from "lodash";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Card,
@@ -10,20 +11,29 @@ import {
   Stack,
 } from "react-bootstrap";
 
-import { MongodbAnalyzeDocumentOutput, AppState } from "../types";
+import {
+  MongodbAnalyzeDocumentOutput,
+  AppState,
+  CONTAINER_STATES,
+} from "../types";
+
+export type SchemaTabProps = {
+  loading: CONTAINER_STATES;
+  documentsFilter: Record<string, unknown>;
+  documents: MongodbAnalyzeDocumentOutput;
+};
+
+export const SCHEMA_TAB_INITIAL_STATE: SchemaTabProps = {
+  loading: CONTAINER_STATES.UNLOADED,
+  documentsFilter: {},
+  documents: [],
+};
 
 export const useSchemaTabState = () => {
-  const [loading, setLoading] = useState(false);
-  const [documentsFilter, setDocumentsFilter] = useState({});
-  const [documents, setDocuments] = useState<MongodbAnalyzeDocumentOutput>([]);
-
+  const [state, setState] = useState<SchemaTabProps>(SCHEMA_TAB_INITIAL_STATE);
   return {
-    loading,
-    setLoading,
-    documents,
-    setDocuments,
-    documentsFilter,
-    setDocumentsFilter,
+    state,
+    setState,
   };
 };
 
@@ -31,20 +41,54 @@ const PROGRESS_BAR_VARIANT = ["success", "danger", "warning", "info"];
 
 export const SchemaTab = ({
   appStates: {
-    functions: { mongodb_analyze_documents },
-    connectionData: { databaseName, collectionName },
+    connectionData: {
+      state: { databaseName, collectionName },
+    },
     schemaTabState: {
-      loading,
-      setLoading,
-      documents,
-      setDocuments,
-      documentsFilter,
-      setDocumentsFilter,
+      state: { loading, documents, documentsFilter },
+      setState,
     },
   },
 }: Readonly<{
   appStates: AppState;
 }>) => {
+  const inputDisabled = loading === CONTAINER_STATES.LOADING;
+
+  useEffect(() => {
+    const f = async () => {
+      if (
+        loading === CONTAINER_STATES.UNLOADED &&
+        databaseName &&
+        collectionName
+      ) {
+        try {
+          setState((state) => ({
+            ...state,
+            loading: CONTAINER_STATES.LOADING,
+            documents: [],
+          }));
+          const result = await invoke<MongodbAnalyzeDocumentOutput>(
+            "mongodb_analyze_documents",
+            {
+              databaseName,
+              collectionName,
+              documentsFilter,
+            }
+          );
+          setState((state) => ({
+            ...state,
+            loading: CONTAINER_STATES.LOADED,
+            documents: chain(result).sort().value(),
+          }));
+        } catch (e) {
+          console.error(e);
+          setState(SCHEMA_TAB_INITIAL_STATE);
+        }
+      }
+    };
+    f();
+  }, [databaseName, collectionName, loading, documentsFilter, setState]);
+
   return (
     <Stack
       direction="vertical"
@@ -62,26 +106,31 @@ export const SchemaTab = ({
         <InputGroup>
           <InputGroup.Text>Filter</InputGroup.Text>
           <FormControl
-            placeholder={JSON.stringify({ key: "value" })}
-            disabled={loading}
+            placeholder={JSON.stringify({ key: "value" }, null, 2)}
+            disabled={inputDisabled}
             onChange={(e) => {
               try {
                 const filter = JSON.parse(e.target.value);
-                setDocumentsFilter(filter);
+                setState((state) => ({
+                  ...state,
+                  documentsFilter: filter,
+                }));
               } catch (e) {
-                setDocumentsFilter({});
+                setState((state) => ({
+                  ...state,
+                  documentsFilter: {},
+                }));
               }
             }}
           />
         </InputGroup>
         <Button
-          disabled={loading}
+          disabled={inputDisabled}
           onClick={() =>
-            mongodb_analyze_documents({
-              databaseName,
-              collectionName,
-              documentsFilter,
-            })
+            setState((state) => ({
+              ...state,
+              loading: CONTAINER_STATES.UNLOADED,
+            }))
           }
         >
           Analyze
@@ -93,7 +142,7 @@ export const SchemaTab = ({
           rowGap: "5px",
         }}
       >
-        {loading ? (
+        {loading === CONTAINER_STATES.LOADING ? (
           <Spinner animation="border" role="status">
             <span className="visually-hidden">Loading...</span>
           </Spinner>

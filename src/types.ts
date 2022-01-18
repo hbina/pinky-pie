@@ -19,8 +19,8 @@ export type CollectionSpecification = Readonly<{
 export type BsonDocument = Readonly<Record<string, unknown>>;
 
 export type MongodbConnectInput = Readonly<{
-  mongodbUrl: string;
-  mongodbPort: number;
+  url: string;
+  port: number;
 }>;
 
 export type MongodbFindCollectionsInput = Readonly<{ databaseName: string }>;
@@ -55,7 +55,7 @@ export type AggregationStageInput = {
 };
 
 export type AggregationStageOutput = {
-  loading: boolean;
+  loading: CONTAINER_STATES;
   documents: Record<string, unknown>[];
 };
 
@@ -78,14 +78,14 @@ export type MongodbServerInformation = {
 };
 
 export enum CONTAINER_STATES {
-  HIDDEN,
-  LOADING,
-  LOADED,
+  UNLOADED = "UNLOADED",
+  LOADING = "LOADING",
+  LOADED = "LOADED",
 }
 
 export enum CONTAINER_STATUS {
-  ENABLED,
-  DISABLED,
+  ENABLED = "ENABLED",
+  DISABLED = "DISABLED",
 }
 
 export type AppState = ReturnType<typeof useAppState>;

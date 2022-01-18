@@ -1,29 +1,78 @@
-import { useState } from "react";
+import { invoke } from "@tauri-apps/api";
+import { cloneDeep } from "lodash";
+import { useEffect, useState } from "react";
 import { Card, Modal } from "react-bootstrap";
 
 import { MongodbServerInformation, AppState } from "../types";
 
+export type ServerInfoProps = {
+  visible: boolean;
+  serverInformation: MongodbServerInformation | undefined;
+};
+
+export const SERVER_INFO_INITIAL_STATE: ServerInfoProps = {
+  visible: false,
+  serverInformation: undefined,
+};
+
 export const useServerInfoState = () => {
-  const [show, setShow] = useState(false);
-  const [serverInformation, setServerInformation] = useState<
-    MongodbServerInformation | undefined
-  >(undefined);
+  const [state, setState] = useState<ServerInfoProps>(
+    SERVER_INFO_INITIAL_STATE
+  );
 
   return {
-    show,
-    setShow,
-    serverInformation,
-    setServerInformation,
+    state,
+    setState,
   };
 };
 
 export const ServerInfo = ({
   appStates: {
-    serverInfoState: { show, setShow, serverInformation },
+    connectionData: {
+      state: { url, port },
+    },
+    serverInfoState: {
+      state: { visible, serverInformation },
+      setState,
+    },
   },
 }: Readonly<{ appStates: AppState }>) => {
+  useEffect(() => {
+    const f = async () => {
+      try {
+        setState((state) => ({
+          ...state,
+          serverInformation: undefined,
+        }));
+        const result = await invoke<MongodbServerInformation>(
+          "mongodb_server_description",
+          {
+            url,
+            port,
+          }
+        );
+        setState((state) => ({
+          ...state,
+          serverInformation: result,
+        }));
+      } catch (e) {
+        console.error(e);
+        setState(SERVER_INFO_INITIAL_STATE);
+      }
+    };
+    f();
+  }, [port, url, setState]);
+
   return (
-    <Modal show={show} onHide={() => setShow(false)}>
+    <Modal
+      show={visible}
+      onHide={() =>
+        setState((state) => ({
+          ...cloneDeep(state),
+          visible: false,
+        }))
+      }
+    >
       <Modal.Header closeButton>
         <Modal.Title>Server information</Modal.Title>
       </Modal.Header>

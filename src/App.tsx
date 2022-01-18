@@ -1,19 +1,34 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import { Stack, Tab, Tabs } from "react-bootstrap";
+import { diff } from "deep-object-diff";
 
 import { MongoDbUrlBar } from "./components/MongoDbUrlBar";
 import { DocumentsTab } from "./components/DocumentsTab";
 import { AggregateTab } from "./components/AggregateTab";
 import { SchemaTab } from "./components/SchemaTab";
 import { useAppState } from "./util";
+import { AppState } from "./types";
+
+let counter = 0;
+let previousState: AppState | undefined = undefined;
 
 const App = () => {
   const appStates = useAppState();
   const {
     window: { height },
-    connectionData: { databaseName, collectionName },
+    connectionData: {
+      state: { databaseName, collectionName },
+    },
   } = appStates;
+
+  if (previousState) {
+    console.log("counter", counter, "diff", diff(previousState, appStates));
+  } else {
+    console.log("counter", counter, "no diff");
+  }
+  previousState = appStates;
+  counter += 1;
 
   return (
     <Stack

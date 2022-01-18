@@ -153,15 +153,15 @@ lazy_static! {
 #[command]
 pub async fn mongodb_connect(
   state: AppArg<'_>,
-  mongodb_url: String,
-  mongodb_port: u16,
+  url: String,
+  port: u16,
 ) -> Result<Vec<DatabaseSpecification>, PError> {
   let handler: Arc<dyn SdamEventHandler> = Arc::new(SdamHandler);
   let client = Client::with_options(
     ClientOptions::builder()
       .hosts(vec![ServerAddress::Tcp {
-        host: mongodb_url.clone(),
-        port: Some(mongodb_port),
+        host: url.clone(),
+        port: Some(port),
       }])
       .sdam_event_handler(handler)
       .build(),
@@ -253,16 +253,16 @@ pub async fn mongodb_aggregate_documents(
 
 #[command]
 pub async fn mongodb_server_description(
-  mongodb_url: String,
-  mongodb_port: u16,
+  url: String,
+  port: u16,
 ) -> Result<ServerDescription, PError> {
   let handle = &*GLOBAL.lock().unwrap();
   let client = handle.as_ref().ok_or(PError::ClientNotAvailable)?;
   let servers = client.new_description.servers();
   let server_info = servers
     .get(&ServerAddress::Tcp {
-      host: mongodb_url,
-      port: Some(mongodb_port),
+      host: url,
+      port: Some(port),
     })
     .cloned();
   server_info
