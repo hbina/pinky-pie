@@ -1,5 +1,4 @@
 import React from "react";
-import { useAppState } from "./util";
 
 export type ReactSetState<T> = React.Dispatch<React.SetStateAction<T>>;
 export type ReactState<T> = [T, ReactSetState<T>];
@@ -55,7 +54,7 @@ export type AggregationStageInput = {
 };
 
 export type AggregationStageOutput = {
-  loading: CONTAINER_STATES;
+  loading: VALUE_STATES;
   documents: Record<string, unknown>[];
 };
 
@@ -77,7 +76,7 @@ export type MongodbServerInformation = {
   server_type: string;
 };
 
-export enum CONTAINER_STATES {
+export enum VALUE_STATES {
   UNLOADED = "UNLOADED",
   LOADING = "LOADING",
   LOADED = "LOADED",
@@ -87,5 +86,3 @@ export enum CONTAINER_STATUS {
   ENABLED = "ENABLED",
   DISABLED = "DISABLED",
 }
-
-export type AppState = ReturnType<typeof useAppState>;

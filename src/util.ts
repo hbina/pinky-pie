@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { cloneDeep } from "lodash";
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api";
 
-import { useAggregateTabState } from "./components/AggregateTab";
-import { useDocumentsTabState } from "./components/DocumentsTab";
-import { useMongodbUrlBarState } from "./components/MongoDbUrlBar";
-import { useSchemaTabState } from "./components/SchemaTab";
-import { useServerInfoState } from "./components/ServerInfo";
 import {
-  CONTAINER_STATES,
   BsonDocument,
-  MongodbAggregateDocumentsInput,
-  AggregationStageOutput,
+  DatabaseSpecification,
+  CollectionSpecification,
+  AggregationStageInput,
 } from "./types";
+
+function apiCall<O>(
+  funName: string,
+  args: Record<string, unknown>
+): Promise<O> {
+  console.log(`calling ${funName} with`, args);
+  return invoke<O>(funName, args);
+}
 
 const getWindowDimensions = () => {
   const { innerWidth: width, innerHeight: height } = window;
@@ -38,83 +41,91 @@ export const useWindowDimensions = () => {
   return windowDimensions;
 };
 
-export const invoke: <T extends Record<string, unknown>, O>(
-  name: string,
-  payload: T
-) => Promise<O> =
-  // @ts-ignore
-  window.__TAURI__.invoke;
+export const mongodb_aggregate_documents = async ({
+  databaseName,
+  collectionName,
+  idx,
+  sampleCount,
+  stages,
+}: {
+  databaseName: string;
+  collectionName: string;
+  idx: number;
+  sampleCount: number;
+  stages: AggregationStageInput[];
+}) =>
+  apiCall<BsonDocument[]>("mongodb_aggregate_documents", {
+    databaseName,
+    collectionName,
+    stages: [
+      {
+        $limit: sampleCount,
+      },
+      ...stages.map(({ stageBody, stageOperation }) => ({
+        [stageOperation]: JSON.parse(stageBody),
+      })),
+    ],
+  });
 
-export const mongodb_aggregate_documents = async (
-  input: MongodbAggregateDocumentsInput,
-  setStagesOutput: React.Dispatch<
-    React.SetStateAction<AggregationStageOutput[]>
-  >
-) => {
-  try {
-    setStagesOutput((stagesOutput) => {
-      const copy = cloneDeep(stagesOutput);
-      copy[input.idx] = {
-        loading: CONTAINER_STATES.LOADING,
-        documents: [],
-      };
-      return copy;
-    });
-    if (input.sampleCount > 0) {
-      const documents = await invoke<
-        {
-          databaseName: string;
-          collectionName: string;
-          stages: Record<string, unknown>[];
-        },
-        BsonDocument[]
-      >("mongodb_aggregate_documents", {
-        databaseName: input.databaseName,
-        collectionName: input.collectionName,
-        stages: [
-          {
-            $limit: input.sampleCount,
-          },
-          ...input.stages.map(({ stageBody, stageOperation }) => ({
-            [stageOperation]: JSON.parse(stageBody),
-          })),
-        ],
-      });
-      setStagesOutput((stagesOutput) => {
-        const copy = cloneDeep(stagesOutput);
-        copy[input.idx] = {
-          loading: CONTAINER_STATES.LOADED,
-          documents,
-        };
-        return copy;
-      });
-    } else {
-      setStagesOutput((stages) =>
-        stages.map((s) => ({
-          loading: CONTAINER_STATES.LOADED,
-          documents: [],
-        }))
-      );
-    }
-  } catch (e) {
-    console.error(e);
-  }
-};
+export const mongodb_connect = async ({
+  url,
+  port,
+}: {
+  url: string;
+  port: number;
+}) =>
+  apiCall<DatabaseSpecification[]>("mongodb_connect", {
+    url,
+    port,
+  });
 
-export const useAppState = () => {
-  const { width, height } = useWindowDimensions();
-  const connectionData = useMongodbUrlBarState();
-  const documentsTabState = useDocumentsTabState();
-  const aggregateTabState = useAggregateTabState();
-  const serverInfoState = useServerInfoState();
-  const schemaTabState = useSchemaTabState();
+export const mongodb_find_collections = async ({
+  databaseName,
+}: {
+  databaseName: string;
+}) =>
+  apiCall<CollectionSpecification[]>("mongodb_find_collections", {
+    databaseName,
+  });
 
-  return {
-    window: { width, height },
-    connectionData,
-    documentsTabState,
-    aggregateTabState,
-    serverInfoState,
-    schemaTabState,
-  };
-};
+export const mongodb_find_documents = async ({
+  databaseName,
+  collectionName,
+  page,
+  perPage,
+  documentsFilter,
+  documentsProjection,
+  documentsSort,
+}: {
+  databaseName: string;
+  collectionName: string;
+  page: number;
+  perPage: number;
+  documentsFilter: Record<string, unknown>;
+  documentsProjection: Record<string, unknown>;
+  documentsSort: Record<string, unknown>;
+}) =>
+  apiCall<BsonDocument[]>("mongodb_find_documents", {
+    databaseName,
+    collectionName,
+    page,
+    perPage,
+    documentsFilter,
+    documentsProjection,
+    documentsSort,
+  });
+
+export const mongodb_count_documents = async ({
+  databaseName,
+  collectionName,
+  documentsFilter,
+}: {
+  databaseName: string;
+  collectionName: string;
+  documentsFilter: Record<string, unknown>;
+}) =>
+  apiCall<number>("mongodb_count_documents", {
+    databaseName,
+    collectionName,
+    documentsFilter,
+  });

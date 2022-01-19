@@ -11,20 +11,17 @@ import {
   Stack,
 } from "react-bootstrap";
 
-import {
-  MongodbAnalyzeDocumentOutput,
-  AppState,
-  CONTAINER_STATES,
-} from "../types";
+import { MongodbAnalyzeDocumentOutput, VALUE_STATES } from "../types";
+import { AppState } from "../App";
 
 export type SchemaTabProps = {
-  loading: CONTAINER_STATES;
+  loading: VALUE_STATES;
   documentsFilter: Record<string, unknown>;
   documents: MongodbAnalyzeDocumentOutput;
 };
 
 export const SCHEMA_TAB_INITIAL_STATE: SchemaTabProps = {
-  loading: CONTAINER_STATES.UNLOADED,
+  loading: VALUE_STATES.UNLOADED,
   documentsFilter: {},
   documents: [],
 };
@@ -52,19 +49,15 @@ export const SchemaTab = ({
 }: Readonly<{
   appStates: AppState;
 }>) => {
-  const inputDisabled = loading === CONTAINER_STATES.LOADING;
+  const inputDisabled = loading === VALUE_STATES.LOADING;
 
   useEffect(() => {
     const f = async () => {
-      if (
-        loading === CONTAINER_STATES.UNLOADED &&
-        databaseName &&
-        collectionName
-      ) {
+      if (loading === VALUE_STATES.UNLOADED && databaseName && collectionName) {
         try {
           setState((state) => ({
             ...state,
-            loading: CONTAINER_STATES.LOADING,
+            loading: VALUE_STATES.LOADING,
             documents: [],
           }));
           const result = await invoke<MongodbAnalyzeDocumentOutput>(
@@ -77,7 +70,7 @@ export const SchemaTab = ({
           );
           setState((state) => ({
             ...state,
-            loading: CONTAINER_STATES.LOADED,
+            loading: VALUE_STATES.LOADED,
             documents: chain(result).sort().value(),
           }));
         } catch (e) {
@@ -129,7 +122,7 @@ export const SchemaTab = ({
           onClick={() =>
             setState((state) => ({
               ...state,
-              loading: CONTAINER_STATES.UNLOADED,
+              loading: VALUE_STATES.UNLOADED,
             }))
           }
         >
@@ -142,7 +135,7 @@ export const SchemaTab = ({
           rowGap: "5px",
         }}
       >
-        {loading === CONTAINER_STATES.LOADING ? (
+        {loading === VALUE_STATES.LOADING ? (
           <Spinner animation="border" role="status">
             <span className="visually-hidden">Loading...</span>
           </Spinner>

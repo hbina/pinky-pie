@@ -3,7 +3,8 @@ import { cloneDeep } from "lodash";
 import { useEffect, useState } from "react";
 import { Card, Modal } from "react-bootstrap";
 
-import { MongodbServerInformation, AppState } from "../types";
+import { VALUE_STATES, MongodbServerInformation } from "../types";
+import { AppState } from "../App";
 
 export type ServerInfoProps = {
   visible: boolean;
@@ -29,7 +30,7 @@ export const useServerInfoState = () => {
 export const ServerInfo = ({
   appStates: {
     connectionData: {
-      state: { url, port },
+      state: { url, port, status: connectionState },
     },
     serverInfoState: {
       state: { visible, serverInformation },
@@ -40,28 +41,29 @@ export const ServerInfo = ({
   useEffect(() => {
     const f = async () => {
       try {
-        setState((state) => ({
-          ...state,
-          serverInformation: undefined,
-        }));
-        const result = await invoke<MongodbServerInformation>(
-          "mongodb_server_description",
-          {
-            url,
-            port,
-          }
-        );
-        setState((state) => ({
-          ...state,
-          serverInformation: result,
-        }));
+        if (connectionState === VALUE_STATES.LOADED) {
+          setState((state) => ({
+            ...state,
+            serverInformation: undefined,
+          }));
+          const result = await invoke<MongodbServerInformation>(
+            "mongodb_server_description",
+            {
+              url,
+              port,
+            }
+          );
+          setState((state) => ({
+            ...state,
+            serverInformation: result,
+          }));
+        }
       } catch (e) {
         console.error(e);
-        setState(SERVER_INFO_INITIAL_STATE);
       }
     };
     f();
-  }, [port, url, setState]);
+  }, [port, url, connectionState, setState]);
 
   return (
     <Modal

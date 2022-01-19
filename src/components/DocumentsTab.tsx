@@ -10,38 +10,32 @@ import {
   Stack,
 } from "react-bootstrap";
 
-import {
-  BsonDocument,
-  CONTAINER_STATUS,
-  AppState,
-  CONTAINER_STATES,
-} from "../types";
-import { invoke } from "@tauri-apps/api";
+import { BsonDocument, VALUE_STATES } from "../types";
+import { AppState } from "../App";
+import { mongodb_count_documents, mongodb_find_documents } from "../util";
 
 export type DocumentsTabProps = {
   documents: BsonDocument[];
   documentsCount: number;
-  loading: CONTAINER_STATES;
+  status: VALUE_STATES;
   documentsFilter: Record<string, unknown>;
   documentsProjection: Record<string, unknown>;
   documentsSort: Record<string, unknown>;
   perPage: number;
   page: number;
   jsonDepth: number;
-  queryButtonStatus: CONTAINER_STATUS;
 };
 
 export const DOCUMENTS_TAB_INITIATE_STATE: DocumentsTabProps = {
   documents: [],
   documentsCount: 0,
-  loading: CONTAINER_STATES.UNLOADED,
+  status: VALUE_STATES.UNLOADED,
   documentsFilter: {},
   documentsProjection: {},
   documentsSort: {},
   perPage: 5,
   page: 0,
   jsonDepth: 1,
-  queryButtonStatus: CONTAINER_STATUS.ENABLED,
 };
 
 export const useDocumentsTabState = () => {
@@ -59,14 +53,14 @@ export const DocumentsTab = ({
   appStates: {
     window: { height },
     connectionData: {
-      state: { connectionState, databaseName, collectionName },
+      state: { status: connectionStatus, databaseName, collectionName },
     },
     documentsTabState: {
       state: {
         perPage,
         page,
         documentsCount,
-        loading,
+        status: documentsTabStatus,
         documents,
         documentsFilter,
         documentsSort,
@@ -77,44 +71,39 @@ export const DocumentsTab = ({
     },
   },
 }: Readonly<{ appStates: AppState }>) => {
-  const inputDisabled = loading === CONTAINER_STATES.LOADING;
-
   useEffect(() => {
     const f = async () => {
-      if (loading === CONTAINER_STATES.UNLOADED) {
+      if (
+        databaseName &&
+        collectionName &&
+        connectionStatus === VALUE_STATES.UNLOADED &&
+        documentsTabStatus === VALUE_STATES.UNLOADED
+      ) {
         try {
           setState((state) => ({
             ...state,
-            queryButtonStatus: CONTAINER_STATUS.DISABLED,
-            loading: CONTAINER_STATES.LOADING,
+            status: VALUE_STATES.LOADING,
             documents: [],
             documentsCount: 0,
           }));
           // NOTE: This 2 promises should be split up
-          const documents = await invoke<BsonDocument[]>(
-            "mongodb_find_documents",
-            {
-              databaseName,
-              collectionName,
-              page,
-              perPage,
-              documentsFilter,
-              documentsProjection,
-              documentsSort,
-            }
-          );
-          const documentsCount = await invoke<number>(
-            "mongodb_count_documents",
-            {
-              databaseName,
-              collectionName,
-              documentsFilter,
-            }
-          );
+          const documents = await mongodb_find_documents({
+            databaseName,
+            collectionName,
+            page,
+            perPage,
+            documentsFilter,
+            documentsProjection,
+            documentsSort,
+          });
+          const documentsCount = await mongodb_count_documents({
+            databaseName,
+            collectionName,
+            documentsFilter,
+          });
           setState((state) => ({
             ...state,
-            queryButtonStatus: CONTAINER_STATUS.ENABLED,
-            loading: CONTAINER_STATES.LOADED,
+            status: VALUE_STATES.LOADED,
             documents,
             documentsCount,
           }));
@@ -126,15 +115,15 @@ export const DocumentsTab = ({
     };
     f();
   }, [
-    connectionState,
-    databaseName,
     collectionName,
+    connectionStatus,
+    databaseName,
     documentsFilter,
     documentsProjection,
     documentsSort,
+    documentsTabStatus,
     page,
     perPage,
-    loading,
     setState,
   ]);
 
@@ -183,7 +172,7 @@ export const DocumentsTab = ({
               }}
               required
               type="number"
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(v) =>
                 v.target.value === ""
                   ? setState((state) => ({
@@ -219,7 +208,7 @@ export const DocumentsTab = ({
               }}
               required
               type="number"
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(v) =>
                 v.target.value === ""
                   ? setState((state) => ({
@@ -255,7 +244,7 @@ export const DocumentsTab = ({
               }}
               required
               type="number"
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(v) =>
                 v.target.value === ""
                   ? setState((state) => ({
@@ -278,11 +267,11 @@ export const DocumentsTab = ({
             alignItems: "center",
             height: "30px",
           }}
-          disabled={inputDisabled}
+          disabled={documentsTabStatus === VALUE_STATES.LOADING}
           onClick={() =>
             setState((state) => ({
               ...state,
-              loading: CONTAINER_STATES.UNLOADED,
+              status: VALUE_STATES.UNLOADED,
             }))
           }
         >
@@ -316,7 +305,7 @@ export const DocumentsTab = ({
                 height: "30px",
               }}
               placeholder={JSON.stringify({ key: "value" }, null, 2)}
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
@@ -347,7 +336,7 @@ export const DocumentsTab = ({
                 height: "30px",
               }}
               placeholder={JSON.stringify({ key: "value" }, null, 2)}
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
@@ -378,7 +367,7 @@ export const DocumentsTab = ({
                 height: "30px",
               }}
               placeholder={JSON.stringify({ key: "value" }, null, 2)}
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(e) => {
                 try {
                   const filter = JSON.parse(e.target.value);
@@ -408,7 +397,7 @@ export const DocumentsTab = ({
             }}
           >
             <Pagination.Prev
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               style={{
                 display: "flex",
                 height: "30px",
@@ -421,7 +410,7 @@ export const DocumentsTab = ({
               }
             />
             <Pagination.Next
-              disabled={inputDisabled}
+              disabled={documentsTabStatus === VALUE_STATES.LOADING}
               style={{
                 display: "flex",
                 height: "30px",
@@ -449,7 +438,7 @@ export const DocumentsTab = ({
           overflow: "auto",
         }}
       >
-        {loading === CONTAINER_STATES.UNLOADED && (
+        {documentsTabStatus === VALUE_STATES.UNLOADED && (
           <div
             style={{
               display: "flex",
@@ -460,7 +449,7 @@ export const DocumentsTab = ({
             Please run the query
           </div>
         )}
-        {loading === CONTAINER_STATES.LOADING && (
+        {documentsTabStatus === VALUE_STATES.LOADING && (
           <div
             style={{
               display: "flex",
@@ -473,7 +462,7 @@ export const DocumentsTab = ({
             <Spinner animation="border" role="status" />
           </div>
         )}
-        {loading === CONTAINER_STATES.LOADING && (
+        {documentsTabStatus === VALUE_STATES.LOADING && (
           <div
             style={{
               display: "flex",
@@ -486,7 +475,7 @@ export const DocumentsTab = ({
             <Spinner animation="border" role="status" />
           </div>
         )}
-        {loading === CONTAINER_STATES.LOADED && (
+        {documentsTabStatus === VALUE_STATES.LOADED && (
           <div
             style={{
               display: "flex",

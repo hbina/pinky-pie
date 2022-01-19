@@ -1,16 +1,15 @@
 import { cloneDeep, chain } from "lodash";
-import { useState } from "react";
-import { Form, InputGroup, Stack } from "react-bootstrap";
+import { useEffect, useState } from "react";
+import { Form, InputGroup } from "react-bootstrap";
 
 import {
   AggregationStageInput,
   AggregationStageOutput,
-  AppState,
-  CONTAINER_STATES,
+  VALUE_STATES,
 } from "../types";
+import { AppState } from "../App";
 import { mongodb_aggregate_documents } from "../util";
 import { AggregateTabStageRow } from "./AggregateTabStageRow";
-import { EitherView } from "./EitherView";
 
 export const AGGREGATE_OPERATIONS = [
   "$addFields",
@@ -57,7 +56,7 @@ export const useAggregateTabState = () => {
   ]);
   const [stagesOutput, setStagesOutput] = useState<AggregationStageOutput[]>([
     {
-      loading: CONTAINER_STATES.UNLOADED,
+      loading: VALUE_STATES.UNLOADED,
       documents: [],
     },
   ]);
@@ -75,10 +74,14 @@ export const useAggregateTabState = () => {
 };
 
 export const AggregateTab = ({
-  appStates: {
+  appStates,
+}: Readonly<{
+  appStates: AppState;
+}>) => {
+  const {
     window: { height },
     connectionData: {
-      state: { databaseName, collectionName },
+      state: { status: connectionStatus, databaseName, collectionName },
     },
     aggregateTabState: {
       stagesInput,
@@ -88,21 +91,101 @@ export const AggregateTab = ({
       sampleCount,
       setSampleCount,
     },
-  },
-}: Readonly<{
-  appStates: AppState;
-}>) => {
+  } = appStates;
+
+  useEffect(() => {
+    const f = async () => {
+      if (
+        connectionStatus === VALUE_STATES.LOADED &&
+        databaseName &&
+        collectionName &&
+        stagesOutput.some((s) => s.loading === VALUE_STATES.UNLOADED)
+      ) {
+        try {
+          const shouldReloadIndices = stagesOutput
+            .map(({ loading }, idx) => ({
+              idx,
+              loading,
+            }))
+            .filter((s) => s.loading === VALUE_STATES.UNLOADED);
+          setStagesOutput((state) =>
+            state.map((s) => {
+              const shouldReload = s.loading === VALUE_STATES.UNLOADED;
+              return {
+                ...s,
+                loading: shouldReload ? VALUE_STATES.LOADING : s.loading,
+                documents: shouldReload ? [] : s.documents,
+              };
+            })
+          );
+          if (sampleCount > 0) {
+            shouldReloadIndices.forEach(async ({ idx }) => {
+              const documents = await mongodb_aggregate_documents({
+                databaseName,
+                collectionName,
+                idx,
+                sampleCount,
+                stages: stagesInput,
+              });
+              setStagesOutput((state) =>
+                state.map((s, idx2) =>
+                  idx === idx2
+                    ? {
+                        ...s,
+                        loading: VALUE_STATES.LOADED,
+                        documents,
+                      }
+                    : s
+                )
+              );
+            });
+          } else {
+            setStagesOutput((state) =>
+              state.map((s) => ({
+                ...s,
+                loading: VALUE_STATES.LOADED,
+                documents: [],
+              }))
+            );
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+    f();
+  }, [
+    collectionName,
+    databaseName,
+    sampleCount,
+    stagesInput,
+    connectionStatus,
+    stagesOutput,
+    setStagesOutput,
+  ]);
+
   return (
-    <Stack direction="vertical">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* inputs */}
-      <Stack
-        direction="horizontal"
+      <div
         style={{
+          display: "flex",
+          flexDirection: "row",
           padding: "5px",
           justifyContent: "space-between",
         }}
       >
-        <Stack direction="horizontal">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+          }}
+        >
           <InputGroup.Text
             style={{
               height: "30px",
@@ -118,14 +201,14 @@ export const AggregateTab = ({
             required
             type="number"
             disabled={chain(stagesOutput)
-              .some((s) => s.loading === CONTAINER_STATES.LOADING)
+              .some((s) => s.loading === VALUE_STATES.LOADING)
               .value()}
             onChange={(v) =>
               setSampleCount(Math.max(0, parseInt(v.target.value)))
             }
             value={sampleCount}
           />
-        </Stack>
+        </div>
         <button
           style={{
             display: "flex",
@@ -134,36 +217,29 @@ export const AggregateTab = ({
             height: "30px",
           }}
           disabled={chain(stagesOutput)
-            .some((s) => s.loading === CONTAINER_STATES.LOADING)
+            .some((s) => s.loading === VALUE_STATES.LOADING)
             .value()}
-          onClick={() => {
-            stagesInput
-              .map((_a, idx) => stagesInput.filter((_b, idx2) => idx2 <= idx))
-              .forEach(
-                (stages, idx) =>
-                  databaseName &&
-                  collectionName &&
-                  mongodb_aggregate_documents(
-                    {
-                      idx,
-                      sampleCount,
-                      databaseName,
-                      collectionName,
-                      stages,
-                    },
-                    setStagesOutput
-                  )
-              );
-          }}
+          onClick={() =>
+            stagesInput.forEach(
+              (a, idx) =>
+                databaseName &&
+                collectionName &&
+                mongodb_aggregate_documents({
+                  databaseName,
+                  collectionName,
+                  idx,
+                  sampleCount,
+                  stages: stagesInput.filter((a, idx2) => idx2 <= idx),
+                })
+            )
+          }
         >
           Refresh
         </button>
-      </Stack>
+      </div>
       {/* stages */}
-      <EitherView
-        predicate={() => stagesInput.length === 0}
-        left={
-          // If stages are empty
+      <>
+        {stagesInput.length === 0 && (
           <button
             onClick={() => {
               setStagesInput((stages) => {
@@ -181,7 +257,7 @@ export const AggregateTab = ({
                 const copy = [
                   ...cloneDeep(stages),
                   {
-                    loading: CONTAINER_STATES.UNLOADED,
+                    loading: VALUE_STATES.UNLOADED,
                     documents: [],
                   },
                 ];
@@ -191,11 +267,12 @@ export const AggregateTab = ({
           >
             Add stage
           </button>
-        }
-        right={
-          <Stack
-            direction="vertical"
+        )}
+        {stagesInput.length !== 0 && (
+          <div
             style={{
+              display: "flex",
+              flexDirection: "column",
               overflowY: "auto",
               rowGap: "5px",
             }}
@@ -217,9 +294,9 @@ export const AggregateTab = ({
                   />
                 </div>
               ))}
-          </Stack>
-        }
-      />
-    </Stack>
+          </div>
+        )}
+      </>
+    </div>
   );
 };

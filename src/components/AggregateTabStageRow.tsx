@@ -6,7 +6,7 @@ import {
   AggregationStageInput,
   AggregationStageOutput,
   ReactSetState,
-  CONTAINER_STATES,
+  VALUE_STATES,
 } from "../types";
 import { AGGREGATE_OPERATIONS } from "./AggregateTab";
 
@@ -124,7 +124,7 @@ export const AggregateTabStageRow = ({
                   alignItems: "center",
                   height: "30px",
                 }}
-                disabled={loading === CONTAINER_STATES.LOADING}
+                disabled={loading === VALUE_STATES.LOADING}
                 onClick={() => {
                   setStagesInput((stages) =>
                     cloneDeep(stages.filter((v, idx) => idx !== rowIdx))
@@ -143,7 +143,7 @@ export const AggregateTabStageRow = ({
                   alignItems: "center",
                   height: "30px",
                 }}
-                disabled={loading === CONTAINER_STATES.LOADING}
+                disabled={loading === VALUE_STATES.LOADING}
                 onClick={() => {
                   setStagesInput((stages) => [
                     ...cloneDeep(stages.filter((v, idx) => idx <= rowIdx)),
@@ -157,7 +157,7 @@ export const AggregateTabStageRow = ({
                   setStagesOutput((stages) => [
                     ...cloneDeep(stages.filter((v, idx) => idx <= rowIdx)),
                     {
-                      loading: CONTAINER_STATES.UNLOADED,
+                      loading: VALUE_STATES.UNLOADED,
                       documents: [],
                     },
                     ...cloneDeep(stages.filter((v, idx) => idx > rowIdx)),
@@ -173,7 +173,7 @@ export const AggregateTabStageRow = ({
               style={{
                 display: "flex",
               }}
-              disabled={loading === CONTAINER_STATES.LOADING}
+              disabled={loading === VALUE_STATES.LOADING}
               onChange={(value) =>
                 setStagesInput((stages) => {
                   const copy = cloneDeep(stages);
@@ -196,7 +196,7 @@ export const AggregateTabStageRow = ({
         </div>
         {/* Output column */}
         <>
-          {loading === CONTAINER_STATES.UNLOADED && (
+          {loading === VALUE_STATES.UNLOADED && (
             <div
               style={{
                 display: "flex",
@@ -207,10 +207,10 @@ export const AggregateTabStageRow = ({
               Please refresh query
             </div>
           )}
-          {loading === CONTAINER_STATES.LOADING && (
+          {loading === VALUE_STATES.LOADING && (
             <Spinner animation="border" role="status" />
           )}
-          {loading === CONTAINER_STATES.LOADED && documents.length === 0 && (
+          {loading === VALUE_STATES.LOADED && documents.length === 0 && (
             <div
               style={{
                 display: "flex",
@@ -221,7 +221,7 @@ export const AggregateTabStageRow = ({
               No documents found
             </div>
           )}
-          {loading === CONTAINER_STATES.LOADED &&
+          {loading === VALUE_STATES.LOADED &&
             documents.length !== 0 &&
             collapsed && (
               <div
@@ -234,7 +234,7 @@ export const AggregateTabStageRow = ({
                 {documents.length} sample documents
               </div>
             )}
-          {loading === CONTAINER_STATES.LOADED &&
+          {loading === VALUE_STATES.LOADED &&
             documents.length !== 0 &&
             !collapsed && (
               <div

@@ -3,15 +3,39 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { Stack, Tab, Tabs } from "react-bootstrap";
 import { diff } from "deep-object-diff";
 
+import { useAggregateTabState } from "./components/AggregateTab";
+import { useDocumentsTabState } from "./components/DocumentsTab";
+import { useMongodbUrlBarState } from "./components/MongoDbUrlBar";
+import { useSchemaTabState } from "./components/SchemaTab";
+import { useServerInfoState } from "./components/ServerInfo";
 import { MongoDbUrlBar } from "./components/MongoDbUrlBar";
 import { DocumentsTab } from "./components/DocumentsTab";
 import { AggregateTab } from "./components/AggregateTab";
 import { SchemaTab } from "./components/SchemaTab";
-import { useAppState } from "./util";
-import { AppState } from "./types";
+import { useWindowDimensions } from "./util";
 
 let counter = 0;
 let previousState: AppState | undefined = undefined;
+
+export type AppState = ReturnType<typeof useAppState>;
+
+export const useAppState = () => {
+  const { width, height } = useWindowDimensions();
+  const connectionData = useMongodbUrlBarState();
+  const documentsTabState = useDocumentsTabState();
+  const aggregateTabState = useAggregateTabState();
+  const serverInfoState = useServerInfoState();
+  const schemaTabState = useSchemaTabState();
+
+  return {
+    window: { width, height },
+    connectionData,
+    documentsTabState,
+    aggregateTabState,
+    serverInfoState,
+    schemaTabState,
+  };
+};
 
 const App = () => {
   const appStates = useAppState();
