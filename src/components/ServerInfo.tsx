@@ -3,17 +3,40 @@ import { cloneDeep } from "lodash";
 import { useEffect, useState } from "react";
 import { Card, Modal } from "react-bootstrap";
 
-import { VALUE_STATES, MongodbServerInformation } from "../types";
+import { VALUE_STATES } from "../types";
 import { AppState } from "../App";
 
 export type ServerInfoProps = {
   visible: boolean;
-  serverInformation: MongodbServerInformation | undefined;
+  descriptions: { address: string; server_type: string }[];
+  heartbeat:
+    | {
+        duration: number;
+        document: {
+          connectionId: number;
+          ismaster: boolean;
+          localTime: {
+            $date: {
+              $numberLong: string;
+            };
+          };
+          logicalSessionTimeoutMinutes: number;
+          maxBsonObjectSize: number;
+          maxMessageSizeBytes: number;
+          maxWireVersion: number;
+          maxWriteBatchSize: number;
+          minWireVersion: number;
+          ok: number;
+          readOnly: boolean;
+        };
+      }
+    | undefined;
 };
 
 export const SERVER_INFO_INITIAL_STATE: ServerInfoProps = {
   visible: false,
-  serverInformation: undefined,
+  descriptions: [],
+  heartbeat: undefined,
 };
 
 export const useServerInfoState = () => {
@@ -33,7 +56,7 @@ export const ServerInfo = ({
       state: { url, port, status: connectionState },
     },
     serverInfoState: {
-      state: { visible, serverInformation },
+      state: { visible, descriptions, heartbeat },
       setState,
     },
   },
@@ -44,18 +67,16 @@ export const ServerInfo = ({
         if (connectionState === VALUE_STATES.LOADED) {
           setState((state) => ({
             ...state,
-            serverInformation: undefined,
+            descriptions: [],
+            hearbeat: undefined,
           }));
-          const result = await invoke<MongodbServerInformation>(
-            "mongodb_server_description",
-            {
-              url,
-              port,
-            }
+          const result = await invoke<Omit<ServerInfoProps, "duration">>(
+            "mongodb_server_description"
           );
           setState((state) => ({
             ...state,
-            serverInformation: result,
+            descriptions: result.descriptions,
+            heartbeat: result.heartbeat,
           }));
         }
       } catch (e) {
@@ -79,45 +100,54 @@ export const ServerInfo = ({
         <Modal.Title>Server information</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {serverInformation ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              rowGap: "5px",
-            }}
-          >
-            <Card>
-              <Card.Body>
-                {serverInformation.address.Tcp ? (
-                  <div>
-                    <h6>Address Type</h6>
-                    <p>Tcp</p>
-                    <h6>Host {"&"} Port</h6>
-                    <p>
-                      {serverInformation.address.Tcp.host}:
-                      {serverInformation.address.Tcp.port}
-                    </p>
-                  </div>
-                ) : (
-                  <div>Unknown address type</div>
-                )}
-              </Card.Body>
-            </Card>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            rowGap: "5px",
+          }}
+        >
+          {descriptions.length !== 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                columnGap: "5px",
+              }}
+            >
+              {descriptions.map(({ address, server_type }) => (
+                <Card key={address}>
+                  <Card.Body>
+                    <div>
+                      <h6>Server type</h6>
+                      <p>{server_type}</p>
+                      <h6>Host {"&"} Port</h6>
+                      <p>{address}</p>
+                    </div>
+                  </Card.Body>
+                </Card>
+              ))}
+            </div>
+          )}
+          {heartbeat && (
             <Card>
               <Card.Body>
                 <div>
-                  <h6>Server Type</h6>
-                  <p>{serverInformation.server_type}</p>
+                  <h6>Duration</h6>
+                  <p>{heartbeat.duration} milliseconds</p>
+                  <h6>Master</h6>
+                  <p>{heartbeat.document.ismaster ? "true" : "false"}</p>
+                  <h6>Readonly</h6>
+                  <p>{heartbeat.document.readOnly ? "true" : "false"}</p>
                 </div>
               </Card.Body>
             </Card>
-          </div>
-        ) : (
-          <div>Not connected to any MongoDB service.</div>
-        )}
+          )}
+        </div>
       </Modal.Body>
-      <Modal.Footer>Pinky Pie</Modal.Footer>
+      <Modal.Footer>
+        <h5>Pinky Pie</h5>
+      </Modal.Footer>
     </Modal>
   );
 };

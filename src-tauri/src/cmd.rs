@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use mongodb::{
   bson::{Bson, Document},
-  event::sdam::{SdamEventHandler, TopologyDescriptionChangedEvent},
+  event::sdam::{SdamEventHandler, ServerHeartbeatSucceededEvent, TopologyDescriptionChangedEvent},
   options::{ClientOptions, FindOptions, ServerAddress},
   results::{CollectionSpecification, DatabaseSpecification},
   sync::Client,
@@ -22,7 +22,7 @@ pub type AppArg<'a> = tauri::State<'a, AppState>;
 
 struct SdamHandler;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum SerializableServerType {
   Standalone,
   Other(String),
@@ -37,16 +37,58 @@ impl From<ServerType> for SerializableServerType {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ServerDescription {
-  pub address: ServerAddress,
+  pub address: String,
   pub server_type: SerializableServerType,
+}
+
+impl ServerDescription {
+  pub fn from_document(event: TopologyDescriptionChangedEvent) -> Vec<ServerDescription> {
+    let servers = event
+      .new_description
+      .servers()
+      .iter()
+      .map(|(address, info)| ServerDescription {
+        address: address.to_string(),
+        server_type: SerializableServerType::from(info.server_type()),
+      })
+      .collect::<Vec<_>>();
+    servers
+  }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ServerHeartbeat {
+  pub duration: u64,
+  pub document: Document,
+}
+
+impl ServerHeartbeat {
+  pub fn from_document(event: ServerHeartbeatSucceededEvent) -> ServerHeartbeat {
+    ServerHeartbeat {
+      // Better way to do this?
+      duration: event.duration.as_millis() as u64,
+      document: event.reply,
+    }
+  }
+}
+
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
+pub struct ServerStatus {
+  descriptions: Vec<ServerDescription>,
+  heartbeat: Option<ServerHeartbeat>,
 }
 
 impl SdamEventHandler for SdamHandler {
   fn handle_topology_description_changed_event(&self, event: TopologyDescriptionChangedEvent) {
     let mut handle = GLOBAL.as_ref().lock().unwrap();
-    *handle = Some(event);
+    handle.descriptions = ServerDescription::from_document(event);
+  }
+
+  fn handle_server_heartbeat_succeeded_event(&self, event: ServerHeartbeatSucceededEvent) {
+    let mut handle = GLOBAL.as_ref().lock().unwrap();
+    handle.heartbeat = Some(ServerHeartbeat::from_document(event));
   }
 }
 
@@ -146,8 +188,7 @@ impl std::fmt::Display for PError {
 }
 
 lazy_static! {
-  static ref GLOBAL: Arc<Mutex<Option<TopologyDescriptionChangedEvent>>> =
-    Arc::new(Mutex::new(None));
+  static ref GLOBAL: Arc<Mutex<ServerStatus>> = Arc::new(Mutex::new(ServerStatus::default()));
 }
 
 #[command]
@@ -252,25 +293,9 @@ pub async fn mongodb_aggregate_documents(
 }
 
 #[command]
-pub async fn mongodb_server_description(
-  url: String,
-  port: u16,
-) -> Result<ServerDescription, PError> {
-  let handle = &*GLOBAL.lock().unwrap();
-  let client = handle.as_ref().ok_or(PError::ClientNotAvailable)?;
-  let servers = client.new_description.servers();
-  let server_info = servers
-    .get(&ServerAddress::Tcp {
-      host: url,
-      port: Some(port),
-    })
-    .cloned();
-  server_info
-    .map(|server_info| ServerDescription {
-      address: server_info.address().clone(),
-      server_type: SerializableServerType::from(server_info.server_type()),
-    })
-    .ok_or(PError::CannotFindServerInfo)
+pub async fn mongodb_server_description() -> ServerStatus {
+  let result = &*GLOBAL.lock().unwrap();
+  result.clone()
 }
 
 #[command]
