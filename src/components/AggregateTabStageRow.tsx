@@ -2,33 +2,34 @@ import { cloneDeep } from "lodash";
 import { Card, Spinner } from "react-bootstrap";
 import ReactJson from "react-json-view";
 
+import { ReactSetState, VALUE_STATES } from "../types";
 import {
-  AggregationStageInput,
-  AggregationStageOutput,
-  ReactSetState,
-  VALUE_STATES,
-} from "../types";
-import { AGGREGATE_OPERATIONS } from "./AggregateTab";
+  AggregateTabStageInput,
+  AggregateTabStageOutput,
+  AGGREGATE_OPERATIONS,
+} from "./AggregateTab";
 
 export type AggregateTabStageRowProps = {
   rowIdx: number;
   height: number;
-  stageInput: AggregationStageInput;
-  setStagesInput: ReactSetState<AggregationStageInput[]>;
-  stageOutput: AggregationStageOutput;
-  setStagesOutput: ReactSetState<AggregationStageOutput[]>;
+  inputDisabled: boolean;
+  stageInput: AggregateTabStageInput;
+  setStagesInput: ReactSetState<AggregateTabStageInput[]>;
+  stageOutput: AggregateTabStageOutput;
+  setStagesOutput: ReactSetState<AggregateTabStageOutput[]>;
 };
 
 export const AggregateTabStageRow = ({
   rowIdx,
   height,
+  inputDisabled,
   stageInput,
   setStagesInput,
   stageOutput,
   setStagesOutput,
 }: Readonly<AggregateTabStageRowProps>) => {
   const { collapsed, stageBody } = stageInput;
-  const { loading, documents } = stageOutput;
+  const { status, documents } = stageOutput;
 
   return (
     <Card
@@ -36,7 +37,7 @@ export const AggregateTabStageRow = ({
       style={{
         padding: "5px",
         paddingBottom: collapsed ? "5px" : "15px",
-        overflowX: "scroll",
+        overflowX: "auto",
         backgroundColor: "#fff5e9",
       }}
     >
@@ -81,30 +82,30 @@ export const AggregateTabStageRow = ({
                   width: "100px",
                 }}
                 onClick={() =>
-                  setStagesInput((stages) => {
-                    const copy = cloneDeep(stages);
-                    copy[rowIdx].collapsed = copy[rowIdx].collapsed
-                      ? false
-                      : true;
-                    return copy;
-                  })
+                  setStagesInput((stages) =>
+                    stages.map((s, idx) => ({
+                      ...s,
+                      collapsed: rowIdx === idx ? !s.collapsed : s.collapsed,
+                    }))
+                  )
                 }
               >
                 {collapsed ? "Expand" : "Collapse"}
               </button>
-              <select>
+              <select
+                disabled={inputDisabled}
+                onChange={(v) =>
+                  setStagesInput((stages) =>
+                    stages.map((s, idx) => ({
+                      ...s,
+                      stageOperation:
+                        rowIdx === idx ? v.target.value : s.stageOperation,
+                    }))
+                  )
+                }
+              >
                 {AGGREGATE_OPERATIONS.map((name, idx) => (
-                  <option
-                    key={idx}
-                    value={name}
-                    onClick={() =>
-                      setStagesInput((stages) => {
-                        const copy = cloneDeep(stages);
-                        copy[rowIdx].stageOperation = name;
-                        return copy;
-                      })
-                    }
-                  >
+                  <option key={idx} value={name}>
                     {name}
                   </option>
                 ))}
@@ -124,13 +125,13 @@ export const AggregateTabStageRow = ({
                   alignItems: "center",
                   height: "30px",
                 }}
-                disabled={loading === VALUE_STATES.LOADING}
+                disabled={inputDisabled}
                 onClick={() => {
                   setStagesInput((stages) =>
-                    cloneDeep(stages.filter((v, idx) => idx !== rowIdx))
+                    stages.filter((v, idx) => idx !== rowIdx)
                   );
                   setStagesOutput((stages) =>
-                    cloneDeep(stages.filter((v, idx) => idx !== rowIdx))
+                    stages.filter((v, idx) => idx !== rowIdx)
                   );
                 }}
               >
@@ -143,7 +144,7 @@ export const AggregateTabStageRow = ({
                   alignItems: "center",
                   height: "30px",
                 }}
-                disabled={loading === VALUE_STATES.LOADING}
+                disabled={inputDisabled}
                 onClick={() => {
                   setStagesInput((stages) => [
                     ...cloneDeep(stages.filter((v, idx) => idx <= rowIdx)),
@@ -157,7 +158,7 @@ export const AggregateTabStageRow = ({
                   setStagesOutput((stages) => [
                     ...cloneDeep(stages.filter((v, idx) => idx <= rowIdx)),
                     {
-                      loading: VALUE_STATES.UNLOADED,
+                      status: VALUE_STATES.UNLOADED,
                       documents: [],
                     },
                     ...cloneDeep(stages.filter((v, idx) => idx > rowIdx)),
@@ -173,7 +174,7 @@ export const AggregateTabStageRow = ({
               style={{
                 display: "flex",
               }}
-              disabled={loading === VALUE_STATES.LOADING}
+              disabled={inputDisabled}
               onChange={(value) =>
                 setStagesInput((stages) => {
                   const copy = cloneDeep(stages);
@@ -196,7 +197,7 @@ export const AggregateTabStageRow = ({
         </div>
         {/* Output column */}
         <>
-          {loading === VALUE_STATES.UNLOADED && (
+          {status === VALUE_STATES.UNLOADED && (
             <div
               style={{
                 display: "flex",
@@ -207,10 +208,10 @@ export const AggregateTabStageRow = ({
               Please refresh query
             </div>
           )}
-          {loading === VALUE_STATES.LOADING && (
+          {status === VALUE_STATES.LOADING && (
             <Spinner animation="border" role="status" />
           )}
-          {loading === VALUE_STATES.LOADED && documents.length === 0 && (
+          {status === VALUE_STATES.LOADED && documents.length === 0 && (
             <div
               style={{
                 display: "flex",
@@ -221,7 +222,7 @@ export const AggregateTabStageRow = ({
               No documents found
             </div>
           )}
-          {loading === VALUE_STATES.LOADED &&
+          {status === VALUE_STATES.LOADED &&
             documents.length !== 0 &&
             collapsed && (
               <div
@@ -234,7 +235,7 @@ export const AggregateTabStageRow = ({
                 {documents.length} sample documents
               </div>
             )}
-          {loading === VALUE_STATES.LOADED &&
+          {status === VALUE_STATES.LOADED &&
             documents.length !== 0 &&
             !collapsed && (
               <div

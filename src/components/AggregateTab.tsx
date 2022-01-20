@@ -1,12 +1,7 @@
-import { cloneDeep, chain } from "lodash";
 import { useEffect, useState } from "react";
 import { Form, InputGroup } from "react-bootstrap";
 
-import {
-  AggregationStageInput,
-  AggregationStageOutput,
-  VALUE_STATES,
-} from "../types";
+import { VALUE_STATES } from "../types";
 import { AppState } from "../App";
 import { mongodb_aggregate_documents } from "../util";
 import { AggregateTabStageRow } from "./AggregateTabStageRow";
@@ -44,28 +39,55 @@ export const AGGREGATE_OPERATIONS = [
   "$unwind",
 ];
 
+export type AggregateTabStageInput = {
+  collapsed: boolean;
+  stageOperation: string;
+  stageBody: string;
+};
+
+export const AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE: AggregateTabStageInput = {
+  collapsed: false,
+  stageOperation: AGGREGATE_OPERATIONS[0],
+  stageBody: "{}",
+};
+
+export type AggregateTabInputProps = {
+  documentWidth: number;
+  sampleCount: number;
+};
+
+export const AGGREGATE_TAB_INPUT_INITIAL_STATE: AggregateTabInputProps = {
+  documentWidth: 200,
+  sampleCount: 2,
+};
+
+export type AggregateTabStageOutput = {
+  status: VALUE_STATES;
+  documents: Record<string, unknown>[];
+};
+
+export const AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE: AggregateTabStageOutput =
+  {
+    status: VALUE_STATES.UNLOADED,
+    documents: [],
+  };
+
 export const useAggregateTabState = () => {
-  const [documentWidth, setDocumentWidth] = useState(200);
-  const [sampleCount, setSampleCount] = useState(2);
-  const [stagesInput, setStagesInput] = useState<AggregationStageInput[]>([
-    {
-      collapsed: false,
-      stageOperation: "$match",
-      stageBody: "{}",
-    },
+  const [input, setInput] = useState<AggregateTabInputProps>(
+    AGGREGATE_TAB_INPUT_INITIAL_STATE
+  );
+
+  const [stagesInput, setStagesInput] = useState<AggregateTabStageInput[]>([
+    AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE,
   ]);
-  const [stagesOutput, setStagesOutput] = useState<AggregationStageOutput[]>([
-    {
-      loading: VALUE_STATES.UNLOADED,
-      documents: [],
-    },
+
+  const [stagesOutput, setStagesOutput] = useState<AggregateTabStageOutput[]>([
+    AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE,
   ]);
 
   return {
-    documentWidth,
-    setDocumentWidth,
-    sampleCount,
-    setSampleCount,
+    input,
+    setInput,
     stagesInput,
     setStagesInput,
     stagesOutput,
@@ -84,14 +106,18 @@ export const AggregateTab = ({
       state: { status: connectionStatus, databaseName, collectionName },
     },
     aggregateTabState: {
+      input: { sampleCount },
+      setInput,
       stagesInput,
       setStagesInput,
       stagesOutput,
       setStagesOutput,
-      sampleCount,
-      setSampleCount,
     },
   } = appStates;
+
+  const inputDisabled = stagesOutput.some(
+    (s) => s.status === VALUE_STATES.LOADING
+  );
 
   useEffect(() => {
     const f = async () => {
@@ -99,21 +125,21 @@ export const AggregateTab = ({
         connectionStatus === VALUE_STATES.LOADED &&
         databaseName &&
         collectionName &&
-        stagesOutput.some((s) => s.loading === VALUE_STATES.UNLOADED)
+        stagesOutput.some((s) => s.status === VALUE_STATES.UNLOADED)
       ) {
         try {
           const shouldReloadIndices = stagesOutput
-            .map(({ loading }, idx) => ({
+            .map(({ status: loading }, idx) => ({
               idx,
               loading,
             }))
             .filter((s) => s.loading === VALUE_STATES.UNLOADED);
           setStagesOutput((state) =>
             state.map((s) => {
-              const shouldReload = s.loading === VALUE_STATES.UNLOADED;
+              const shouldReload = s.status === VALUE_STATES.UNLOADED;
               return {
                 ...s,
-                loading: shouldReload ? VALUE_STATES.LOADING : s.loading,
+                status: shouldReload ? VALUE_STATES.LOADING : s.status,
                 documents: shouldReload ? [] : s.documents,
               };
             })
@@ -132,7 +158,7 @@ export const AggregateTab = ({
                   idx === idx2
                     ? {
                         ...s,
-                        loading: VALUE_STATES.LOADED,
+                        status: VALUE_STATES.LOADED,
                         documents,
                       }
                     : s
@@ -143,7 +169,7 @@ export const AggregateTab = ({
             setStagesOutput((state) =>
               state.map((s) => ({
                 ...s,
-                loading: VALUE_STATES.LOADED,
+                status: VALUE_STATES.LOADED,
                 documents: [],
               }))
             );
@@ -161,6 +187,7 @@ export const AggregateTab = ({
     stagesInput,
     connectionStatus,
     stagesOutput,
+    inputDisabled,
     setStagesOutput,
   ]);
 
@@ -200,11 +227,12 @@ export const AggregateTab = ({
             }}
             required
             type="number"
-            disabled={chain(stagesOutput)
-              .some((s) => s.loading === VALUE_STATES.LOADING)
-              .value()}
+            disabled={inputDisabled}
             onChange={(v) =>
-              setSampleCount(Math.max(0, parseInt(v.target.value)))
+              setInput((state) => ({
+                ...state,
+                sampleCount: Math.max(0, parseInt(v.target.value)),
+              }))
             }
             value={sampleCount}
           />
@@ -216,21 +244,13 @@ export const AggregateTab = ({
             alignItems: "center",
             height: "30px",
           }}
-          disabled={chain(stagesOutput)
-            .some((s) => s.loading === VALUE_STATES.LOADING)
-            .value()}
+          disabled={inputDisabled}
           onClick={() =>
-            stagesInput.forEach(
-              (a, idx) =>
-                databaseName &&
-                collectionName &&
-                mongodb_aggregate_documents({
-                  databaseName,
-                  collectionName,
-                  idx,
-                  sampleCount,
-                  stages: stagesInput.filter((a, idx2) => idx2 <= idx),
-                })
+            setStagesOutput((state) =>
+              state.map((s) => ({
+                ...s,
+                status: VALUE_STATES.UNLOADED,
+              }))
             )
           }
         >
@@ -242,27 +262,19 @@ export const AggregateTab = ({
         {stagesInput.length === 0 && (
           <button
             onClick={() => {
-              setStagesInput((stages) => {
-                const copy = [
-                  ...cloneDeep(stages),
-                  {
-                    collapsed: false,
-                    stageOperation: "$match",
-                    stageBody: "{}",
-                  },
-                ];
-                return copy;
-              });
-              setStagesOutput((stages) => {
-                const copy = [
-                  ...cloneDeep(stages),
-                  {
-                    loading: VALUE_STATES.UNLOADED,
-                    documents: [],
-                  },
-                ];
-                return copy;
-              });
+              setStagesInput([
+                {
+                  collapsed: false,
+                  stageOperation: AGGREGATE_OPERATIONS[0],
+                  stageBody: "{}",
+                },
+              ]);
+              setStagesOutput([
+                {
+                  status: VALUE_STATES.UNLOADED,
+                  documents: [],
+                },
+              ]);
             }}
           >
             Add stage
@@ -287,6 +299,7 @@ export const AggregateTab = ({
                   <AggregateTabStageRow
                     rowIdx={rowIdx}
                     height={height}
+                    inputDisabled={inputDisabled}
                     stageInput={stageInput}
                     setStagesInput={setStagesInput}
                     stageOutput={stageOutput}

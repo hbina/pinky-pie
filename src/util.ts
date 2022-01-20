@@ -5,7 +5,6 @@ import {
   BsonDocument,
   DatabaseSpecification,
   CollectionSpecification,
-  AggregationStageInput,
 } from "./types";
 
 function apiCall<O>(
@@ -52,7 +51,7 @@ export const mongodb_aggregate_documents = async ({
   collectionName: string;
   idx: number;
   sampleCount: number;
-  stages: AggregationStageInput[];
+  stages: { stageBody: string; stageOperation: string }[];
 }) =>
   apiCall<BsonDocument[]>("mongodb_aggregate_documents", {
     databaseName,

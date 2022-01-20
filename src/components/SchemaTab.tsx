@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api";
 import { chain } from "lodash";
 import { useState, useEffect } from "react";
 import {
-  Button,
   Card,
   FormControl,
   InputGroup,
@@ -15,13 +14,13 @@ import { MongodbAnalyzeDocumentOutput, VALUE_STATES } from "../types";
 import { AppState } from "../App";
 
 export type SchemaTabProps = {
-  loading: VALUE_STATES;
+  status: VALUE_STATES;
   documentsFilter: Record<string, unknown>;
   documents: MongodbAnalyzeDocumentOutput;
 };
 
 export const SCHEMA_TAB_INITIAL_STATE: SchemaTabProps = {
-  loading: VALUE_STATES.UNLOADED,
+  status: VALUE_STATES.UNLOADED,
   documentsFilter: {},
   documents: [],
 };
@@ -42,22 +41,22 @@ export const SchemaTab = ({
       state: { databaseName, collectionName },
     },
     schemaTabState: {
-      state: { loading, documents, documentsFilter },
+      state: { status, documents, documentsFilter },
       setState,
     },
   },
 }: Readonly<{
   appStates: AppState;
 }>) => {
-  const inputDisabled = loading === VALUE_STATES.LOADING;
+  const inputDisabled = status === VALUE_STATES.LOADING;
 
   useEffect(() => {
     const f = async () => {
-      if (loading === VALUE_STATES.UNLOADED && databaseName && collectionName) {
+      if (status === VALUE_STATES.UNLOADED && databaseName && collectionName) {
         try {
           setState((state) => ({
             ...state,
-            loading: VALUE_STATES.LOADING,
+            status: VALUE_STATES.LOADING,
             documents: [],
           }));
           const result = await invoke<MongodbAnalyzeDocumentOutput>(
@@ -70,7 +69,7 @@ export const SchemaTab = ({
           );
           setState((state) => ({
             ...state,
-            loading: VALUE_STATES.LOADED,
+            status: VALUE_STATES.LOADED,
             documents: chain(result).sort().value(),
           }));
         } catch (e) {
@@ -80,7 +79,7 @@ export const SchemaTab = ({
       }
     };
     f();
-  }, [databaseName, collectionName, loading, documentsFilter, setState]);
+  }, [databaseName, collectionName, status, documentsFilter, setState]);
 
   return (
     <Stack
@@ -97,9 +96,18 @@ export const SchemaTab = ({
         }}
       >
         <InputGroup>
-          <InputGroup.Text>Filter</InputGroup.Text>
+          <InputGroup.Text
+            style={{
+              height: "30px",
+            }}
+          >
+            Filter
+          </InputGroup.Text>
           <FormControl
-            placeholder={JSON.stringify({ key: "value" }, null, 2)}
+            style={{
+              height: "30px",
+            }}
+            placeholder={JSON.stringify({ key: "value" })}
             disabled={inputDisabled}
             onChange={(e) => {
               try {
@@ -117,17 +125,17 @@ export const SchemaTab = ({
             }}
           />
         </InputGroup>
-        <Button
+        <button
           disabled={inputDisabled}
           onClick={() =>
             setState((state) => ({
               ...state,
-              loading: VALUE_STATES.UNLOADED,
+              status: VALUE_STATES.UNLOADED,
             }))
           }
         >
           Analyze
-        </Button>
+        </button>
       </Stack>
       <Stack
         direction="vertical"
@@ -135,11 +143,13 @@ export const SchemaTab = ({
           rowGap: "5px",
         }}
       >
-        {loading === VALUE_STATES.LOADING ? (
+        {status === VALUE_STATES.UNLOADED && <div>Please refresh page</div>}
+        {status === VALUE_STATES.LOADING && (
           <Spinner animation="border" role="status">
             <span className="visually-hidden">Loading...</span>
           </Spinner>
-        ) : (
+        )}
+        {status === VALUE_STATES.LOADED && (
           <div
             style={{
               display: "flex",

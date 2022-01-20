@@ -76,7 +76,7 @@ export const DocumentsTab = ({
       if (
         databaseName &&
         collectionName &&
-        connectionStatus === VALUE_STATES.UNLOADED &&
+        connectionStatus === VALUE_STATES.LOADED &&
         documentsTabStatus === VALUE_STATES.UNLOADED
       ) {
         try {
@@ -304,7 +304,7 @@ export const DocumentsTab = ({
               style={{
                 height: "30px",
               }}
-              placeholder={JSON.stringify({ key: "value" }, null, 2)}
+              placeholder={JSON.stringify({ key: "value" })}
               disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(e) => {
                 try {
@@ -335,7 +335,7 @@ export const DocumentsTab = ({
               style={{
                 height: "30px",
               }}
-              placeholder={JSON.stringify({ key: "value" }, null, 2)}
+              placeholder={JSON.stringify({ key: "value" })}
               disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(e) => {
                 try {
@@ -366,7 +366,7 @@ export const DocumentsTab = ({
               style={{
                 height: "30px",
               }}
-              placeholder={JSON.stringify({ key: "value" }, null, 2)}
+              placeholder={JSON.stringify({ key: "value" })}
               disabled={documentsTabStatus === VALUE_STATES.LOADING}
               onChange={(e) => {
                 try {

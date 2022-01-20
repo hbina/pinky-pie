@@ -15,10 +15,10 @@ export type MongodbUrlBarProps = {
   port: number;
   status: VALUE_STATES;
   databases: DatabaseSpecification[];
-  databasesLoading: VALUE_STATES;
+  databasesState: VALUE_STATES;
   databaseName: string | undefined;
   collections: CollectionSpecification[];
-  collectionsLoading: VALUE_STATES;
+  collectionsState: VALUE_STATES;
   collectionName: string | undefined;
 };
 
@@ -27,10 +27,10 @@ export const MONGODB_URL_BAR_INITIAL_STATE: MongodbUrlBarProps = {
   port: 27017,
   status: VALUE_STATES.UNLOADED,
   databases: [],
-  databasesLoading: VALUE_STATES.UNLOADED,
+  databasesState: VALUE_STATES.UNLOADED,
   databaseName: undefined,
   collections: [],
-  collectionsLoading: VALUE_STATES.UNLOADED,
+  collectionsState: VALUE_STATES.UNLOADED,
   collectionName: undefined,
 };
 
@@ -54,43 +54,48 @@ export const MongoDbUrlBar = ({
         port,
         status: connectionState,
         databases,
-        databasesLoading,
+        databasesState,
         databaseName,
         collections,
-        collectionsLoading,
+        collectionsState,
         collectionName,
       },
       setState,
     },
+    documentsTabState: { setState: setDocumentsTabState },
     serverInfoState: { setState: setServerInfoState },
+    aggregateTabState: { setStagesOutput: setAggregateTabStagesOutputState },
+    schemaTabState: { setState: setSchemaTabState },
   } = appStates;
 
   useEffect(() => {
     const f = async () => {
-      try {
-        setState((state) => ({
-          ...state,
-          status: VALUE_STATES.LOADING,
-          databases: [],
-          databasesLoading: VALUE_STATES.LOADING,
-          databaseName: undefined,
-          collections: [],
-          collectionsLoading: VALUE_STATES.UNLOADED,
-          collectionName: undefined,
-        }));
-        const databases = await mongodb_connect({
-          url,
-          port,
-        });
-        setState((state) => ({
-          ...state,
-          status: VALUE_STATES.LOADED,
-          databases,
-          databasesLoading: VALUE_STATES.LOADED,
-        }));
-      } catch (error) {
-        console.error(error);
-        setState(MONGODB_URL_BAR_INITIAL_STATE);
+      if (url && port && connectionState === VALUE_STATES.UNLOADED) {
+        try {
+          setState((state) => ({
+            ...state,
+            status: VALUE_STATES.LOADING,
+            databases: [],
+            databasesState: VALUE_STATES.LOADING,
+            databaseName: undefined,
+            collections: [],
+            collectionsState: VALUE_STATES.UNLOADED,
+            collectionName: undefined,
+          }));
+          const databases = await mongodb_connect({
+            url,
+            port,
+          });
+          setState((state) => ({
+            ...state,
+            status: VALUE_STATES.LOADED,
+            databases,
+            databasesState: VALUE_STATES.LOADED,
+          }));
+        } catch (error) {
+          console.error(error);
+          setState(MONGODB_URL_BAR_INITIAL_STATE);
+        }
       }
     };
     f();
@@ -102,7 +107,7 @@ export const MongoDbUrlBar = ({
         try {
           setState((state) => ({
             ...state,
-            collectionsLoading: VALUE_STATES.LOADING,
+            collectionsState: VALUE_STATES.LOADING,
             collections: [],
             collectionName: undefined,
           }));
@@ -111,7 +116,7 @@ export const MongoDbUrlBar = ({
           });
           setState((state) => ({
             ...state,
-            collectionsLoading: VALUE_STATES.LOADED,
+            collectionsState: VALUE_STATES.LOADED,
             collections: collections,
           }));
         } catch (error) {
@@ -121,7 +126,7 @@ export const MongoDbUrlBar = ({
       }
     };
     f();
-  }, [databaseName, collectionsLoading, setState]);
+  }, [databaseName, setState]);
 
   return (
     <div
@@ -212,55 +217,66 @@ export const MongoDbUrlBar = ({
           </button>
           {/* DATABASES SELECT */}
           <>
-            {databasesLoading === VALUE_STATES.LOADING && (
+            {databasesState === VALUE_STATES.UNLOADED && <div></div>}
+            {databasesState === VALUE_STATES.LOADING && (
               <Spinner animation="border" role="status">
                 <span className="visually-hidden">Loading...</span>
               </Spinner>
             )}
-            {databasesLoading === VALUE_STATES.LOADED &&
+            {databasesState === VALUE_STATES.LOADED &&
               databases.length === 0 && <div>No databases available</div>}
-            {databasesLoading === VALUE_STATES.LOADED &&
-              databases.length !== 0 && (
-                <select
-                  name={databaseName}
-                  onChange={(value) =>
-                    setState((state) => ({
-                      ...state,
-                      databaseName: value.target.value,
-                    }))
-                  }
-                >
-                  <option key={0} value={undefined}>
-                    -
-                  </option>
-                  {databases.map(({ name }) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              )}
-          </>
-          {/* COLLECTIONS SELECT */}
-          <>
-            {collectionsLoading === VALUE_STATES.LOADING && (
-              <Spinner animation="border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </Spinner>
-            )}
-            {collectionsLoading === VALUE_STATES.LOADED && (
+            {databasesState === VALUE_STATES.LOADED && databases.length !== 0 && (
               <select
-                name={collectionName}
+                name={databaseName}
                 onChange={(value) =>
                   setState((state) => ({
                     ...state,
-                    collectionName: value.target.value,
+                    databaseName: value.target.value,
                   }))
                 }
               >
-                <option key={0} value={undefined}>
-                  -
-                </option>
+                {!databaseName && <option key={0} value={undefined}></option>}
+                {databases.map(({ name }) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </>
+          {/* COLLECTIONS SELECT */}
+          <>
+            {collectionsState === VALUE_STATES.UNLOADED && <div></div>}
+            {collectionsState === VALUE_STATES.LOADING && (
+              <Spinner animation="border" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </Spinner>
+            )}
+            {collectionsState === VALUE_STATES.LOADED && (
+              <select
+                name={collectionName}
+                onChange={(value) => {
+                  setState((state) => ({
+                    ...state,
+                    collectionName: value.target.value,
+                  }));
+                  setDocumentsTabState((state) => ({
+                    ...state,
+                    status: VALUE_STATES.UNLOADED,
+                  }));
+                  setAggregateTabStagesOutputState((state) =>
+                    state.map((s) => ({
+                      ...s,
+                      status: VALUE_STATES.UNLOADED,
+                    }))
+                  );
+                  setSchemaTabState((state) => ({
+                    ...state,
+                    status: VALUE_STATES.UNLOADED,
+                  }));
+                }}
+              >
+                {!collectionName && <option key={0} value={undefined}></option>}
                 {collections.map(({ name }) => (
                   <option key={name} value={name}>
                     {name}
