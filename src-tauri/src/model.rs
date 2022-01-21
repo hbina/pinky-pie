@@ -1,7 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use mongodb::{bson::Bson, sync::Client};
+use mongodb::{
+  bson::{Bson, Document},
+  results::CollectionSpecification,
+  sync::Client,
+};
 use serde::{Deserialize, Serialize};
+
+use crate::error::PError;
 
 #[derive(Default)]
 pub struct AppState {
@@ -81,5 +87,33 @@ impl From<&Bson> for BsonType {
       Bson::MinKey => BsonType::MinKey,
       Bson::DbPointer(_) => BsonType::DbPointer,
     }
+  }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DatabaseInformation {
+  pub name: String,
+  pub size_on_disk: u64,
+  pub empty: bool,
+  pub shards: Option<Document>,
+  pub collections: Vec<CollectionSpecification>,
+}
+
+impl DatabaseInformation {
+  pub fn from_client(client: &Client) -> Result<Document, PError> {
+    let databases = client.list_databases(None, None)?;
+    let mut document = Document::default();
+
+    for database in databases {
+      let collections = client
+        .database(&database.name)
+        .list_collections(None, None)?
+        .collect::<Result<Vec<_>, _>>()?;
+      let mut database_information = mongodb::bson::to_document(&database)?;
+      database_information.insert("collections", mongodb::bson::to_bson(&collections)?);
+      document.insert(database.name, database_information);
+    }
+
+    Ok(document)
   }
 }

@@ -8,54 +8,13 @@ export type DatabaseSpecification = Readonly<{
   sizeOnDisk: number;
   empty: boolean;
   shards?: Record<string, unknown>;
-}>;
-
-export type CollectionSpecification = Readonly<{
-  name: string;
-  type: string;
+  collections: {
+    name: string;
+    type: string;
+  }[];
 }>;
 
 export type BsonDocument = Readonly<Record<string, unknown>>;
-
-export type MongodbConnectInput = Readonly<{
-  url: string;
-  port: number;
-}>;
-
-export type MongodbFindCollectionsInput = Readonly<{ databaseName: string }>;
-
-export type MongodbFindDocumentsInput = Readonly<{
-  databaseName: string;
-  collectionName: string;
-  page: number;
-  perPage: number;
-  documentsFilter: Record<string, unknown>;
-  documentsProjection: Record<string, unknown>;
-  documentsSort: Record<string, unknown>;
-}>;
-
-export type MongodbDocumentCountInput = Readonly<{
-  databaseName: string;
-  collectionName: string;
-}>;
-
-export type MongodbAnalyzeDocumentInput = {
-  databaseName: string;
-  collectionName: string;
-  documentsFilter: Record<string, unknown>;
-};
-
-export type MongodbAnalyzeDocumentOutput = Array<[string, [string, number][]]>;
-
-export type MongodbServerInformation = {
-  address: {
-    Tcp: {
-      host: string;
-      port: number;
-    };
-  };
-  server_type: string;
-};
 
 export enum VALUE_STATES {
   UNLOADED = "UNLOADED",

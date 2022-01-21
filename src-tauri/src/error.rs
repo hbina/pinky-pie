@@ -9,9 +9,10 @@ pub enum PError {
   CannotFindServerInfo,
   CursorFailure,
   DocumentCountFailed,
-  DocumentAggregateFailed,
-  DocumentFindFailed,
+  // DocumentAggregateFailed,
+  // DocumentFindFailed,
   MongodbError(String, Vec<String>),
+  BsonSerializationError(String),
 }
 
 impl std::error::Error for PError {}
@@ -28,5 +29,11 @@ impl From<mongodb::error::Error> for PError {
       format!("{:#?}", err.kind),
       err.labels().iter().cloned().collect(),
     )
+  }
+}
+
+impl From<mongodb::bson::ser::Error> for PError {
+  fn from(err: mongodb::bson::ser::Error) -> Self {
+    PError::BsonSerializationError(format!("{:#?}", err))
   }
 }

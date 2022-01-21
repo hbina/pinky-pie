@@ -26,7 +26,9 @@ export const TabView = (props: {
       </div>
       <>
         {props.children.map((c) => (
-          <div hidden={c.props.eventKey !== key}>{c}</div>
+          <div key={c.props.eventKey} hidden={c.props.eventKey !== key}>
+            {c}
+          </div>
         ))}
       </>
     </>

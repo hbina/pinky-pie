@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api";
 
-import {
-  BsonDocument,
-  DatabaseSpecification,
-  CollectionSpecification,
-} from "./types";
+import { BsonDocument, DatabaseSpecification } from "./types";
 import { ServerInfoProps } from "./components/ServerInfo";
 
 function apiCall<O>(
@@ -74,18 +70,9 @@ export const mongodb_connect = async ({
   url: string;
   port: number;
 }) =>
-  apiCall<DatabaseSpecification[]>("mongodb_connect", {
+  apiCall<Record<string, DatabaseSpecification>>("mongodb_connect", {
     url,
     port,
-  });
-
-export const mongodb_find_collections = async ({
-  databaseName,
-}: {
-  databaseName: string;
-}) =>
-  apiCall<CollectionSpecification[]>("mongodb_find_collections", {
-    databaseName,
   });
 
 export const mongodb_find_documents = async ({

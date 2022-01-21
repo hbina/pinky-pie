@@ -1,24 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Spinner, Form, InputGroup } from "react-bootstrap";
 
-import {
-  VALUE_STATES,
-  CollectionSpecification,
-  DatabaseSpecification,
-} from "../types";
+import { VALUE_STATES, DatabaseSpecification } from "../types";
 import { AppState } from "../App";
 import { ServerInfo } from "./ServerInfo";
-import { mongodb_connect, mongodb_find_collections } from "../util";
+import { mongodb_connect } from "../util";
+import { isEmpty } from "lodash";
 
 export type MongodbUrlBarProps = {
   url: string;
   port: number;
   status: VALUE_STATES;
-  databases: DatabaseSpecification[];
+  databases: Record<string, DatabaseSpecification>;
   databasesState: VALUE_STATES;
   databaseName: string | undefined;
-  collections: CollectionSpecification[];
-  collectionsState: VALUE_STATES;
   collectionName: string | undefined;
 };
 
@@ -26,11 +21,9 @@ export const MONGODB_URL_BAR_INITIAL_STATE: MongodbUrlBarProps = {
   url: "localhost",
   port: 27017,
   status: VALUE_STATES.UNLOADED,
-  databases: [],
+  databases: {},
   databasesState: VALUE_STATES.UNLOADED,
   databaseName: undefined,
-  collections: [],
-  collectionsState: VALUE_STATES.UNLOADED,
   collectionName: undefined,
 };
 
@@ -52,12 +45,10 @@ export const MongoDbUrlBar = ({
       state: {
         url,
         port,
-        status: connectionState,
+        status,
         databases,
         databasesState,
         databaseName,
-        collections,
-        collectionsState,
         collectionName,
       },
       setState,
@@ -70,15 +61,14 @@ export const MongoDbUrlBar = ({
 
   useEffect(() => {
     const f = async () => {
-      if (url && port && connectionState === VALUE_STATES.UNLOADED) {
+      if (url && port && status === VALUE_STATES.UNLOADED) {
         try {
           setState((state) => ({
             ...state,
             status: VALUE_STATES.LOADING,
-            databases: [],
+            databases: {},
             databasesState: VALUE_STATES.LOADING,
             databaseName: undefined,
-            collections: [],
             collectionsState: VALUE_STATES.UNLOADED,
             collectionName: undefined,
           }));
@@ -86,6 +76,7 @@ export const MongoDbUrlBar = ({
             url,
             port,
           });
+          console.log("databases", databases);
           setState((state) => ({
             ...state,
             status: VALUE_STATES.LOADED,
@@ -99,34 +90,7 @@ export const MongoDbUrlBar = ({
       }
     };
     f();
-  }, [url, port, connectionState, setState]);
-
-  useEffect(() => {
-    const f = async () => {
-      if (databaseName) {
-        try {
-          setState((state) => ({
-            ...state,
-            collectionsState: VALUE_STATES.LOADING,
-            collections: [],
-            collectionName: undefined,
-          }));
-          const collections = await mongodb_find_collections({
-            databaseName,
-          });
-          setState((state) => ({
-            ...state,
-            collectionsState: VALUE_STATES.LOADED,
-            collections: collections,
-          }));
-        } catch (error) {
-          console.error(error);
-          setState(MONGODB_URL_BAR_INITIAL_STATE);
-        }
-      }
-    };
-    f();
-  }, [databaseName, setState]);
+  }, [url, port, status, setState]);
 
   return (
     <div
@@ -200,7 +164,7 @@ export const MongoDbUrlBar = ({
         >
           {/* CONNECT BUTTON */}
           <button
-            disabled={connectionState === VALUE_STATES.LOADING}
+            disabled={status === VALUE_STATES.LOADING}
             style={{
               display: "flex",
               alignItems: "center",
@@ -213,8 +177,28 @@ export const MongoDbUrlBar = ({
               }))
             }
           >
-            Connect
+            {status === VALUE_STATES.LOADED ? "Refresh" : "Connect"}
           </button>
+          {/* SERVER INFO BUTTON */}
+          <>
+            <button
+              hidden={status !== VALUE_STATES.LOADED}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                height: "30px",
+              }}
+              onClick={() =>
+                setServerInfoState((state) => ({
+                  ...state,
+                  visible: true,
+                }))
+              }
+            >
+              Server Info
+            </button>
+            <ServerInfo appStates={appStates} />
+          </>
           {/* DATABASES SELECT */}
           <>
             {databasesState === VALUE_STATES.UNLOADED && <div></div>}
@@ -223,9 +207,10 @@ export const MongoDbUrlBar = ({
                 <span className="visually-hidden">Loading...</span>
               </Spinner>
             )}
-            {databasesState === VALUE_STATES.LOADED &&
-              databases.length === 0 && <div>No databases available</div>}
-            {databasesState === VALUE_STATES.LOADED && databases.length !== 0 && (
+            {databasesState === VALUE_STATES.LOADED && isEmpty(databases) && (
+              <div>No databases available</div>
+            )}
+            {databasesState === VALUE_STATES.LOADED && !isEmpty(databases) && (
               <select
                 name={databaseName}
                 onChange={(value) =>
@@ -236,7 +221,7 @@ export const MongoDbUrlBar = ({
                 }
               >
                 {!databaseName && <option key={0} value={undefined}></option>}
-                {databases.map(({ name }) => (
+                {Object.keys(databases).map((name) => (
                   <option key={name} value={name}>
                     {name}
                   </option>
@@ -246,13 +231,8 @@ export const MongoDbUrlBar = ({
           </>
           {/* COLLECTIONS SELECT */}
           <>
-            {collectionsState === VALUE_STATES.UNLOADED && <div></div>}
-            {collectionsState === VALUE_STATES.LOADING && (
-              <Spinner animation="border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </Spinner>
-            )}
-            {collectionsState === VALUE_STATES.LOADED && (
+            {!databaseName && <div></div>}
+            {databaseName && (
               <select
                 name={collectionName}
                 onChange={(value) => {
@@ -277,33 +257,13 @@ export const MongoDbUrlBar = ({
                 }}
               >
                 {!collectionName && <option key={0} value={undefined}></option>}
-                {collections.map(({ name }) => (
+                {databases[databaseName].collections.map(({ name }) => (
                   <option key={name} value={name}>
                     {name}
                   </option>
                 ))}
               </select>
             )}
-          </>
-          {/* SERVER INFO BUTTON */}
-          <>
-            <button
-              hidden={connectionState !== VALUE_STATES.LOADED}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                height: "30px",
-              }}
-              onClick={() =>
-                setServerInfoState((state) => ({
-                  ...state,
-                  visible: true,
-                }))
-              }
-            >
-              Server Info
-            </button>
-            <ServerInfo appStates={appStates} />
           </>
         </div>
       </div>

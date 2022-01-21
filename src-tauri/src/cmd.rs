@@ -5,22 +5,21 @@ use mongodb::{
   bson::Document,
   event::sdam::SdamEventHandler,
   options::{ClientOptions, FindOptions, ServerAddress},
-  results::{CollectionSpecification, DatabaseSpecification},
   sync::Client,
   sync::Cursor,
 };
 use tauri::command;
 
-use crate::error::PError;
 use crate::model::{AppArg, BsonType};
 use crate::mongodb_events::{SdamHandler, ServerStatus, GLOBAL};
+use crate::{error::PError, model::DatabaseInformation};
 
 #[command]
 pub async fn mongodb_connect(
   state: AppArg<'_>,
   url: String,
   port: u16,
-) -> Result<Vec<DatabaseSpecification>, PError> {
+) -> Result<Document, PError> {
   let handler: Arc<dyn SdamEventHandler> = Arc::new(SdamHandler);
   let client = Client::with_options(
     ClientOptions::builder()
@@ -31,25 +30,11 @@ pub async fn mongodb_connect(
       .sdam_event_handler(handler)
       .build(),
   )?;
-  let databases = client.list_databases(None, None)?;
+  let result = DatabaseInformation::from_client(&client)?;
   {
     let mut handle = state.client.lock().unwrap();
     *handle = Some(client)
   };
-  Ok(databases)
-}
-
-#[command]
-pub async fn mongodb_find_collections(
-  state: AppArg<'_>,
-  database_name: String,
-) -> Result<Vec<CollectionSpecification>, PError> {
-  let handle = &*state.client.lock().unwrap();
-  let client = handle.as_ref().ok_or(PError::ClientNotAvailable)?;
-  let database = client.database(&database_name);
-  let result = database
-    .list_collections(None, None)
-    .and_then(|cursor| cursor.collect::<Result<Vec<_>, _>>())?;
   Ok(result)
 }
 

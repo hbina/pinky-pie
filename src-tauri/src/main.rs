@@ -16,7 +16,6 @@ fn main() {
     .manage(model::AppState::default())
     .invoke_handler(tauri::generate_handler![
       cmd::mongodb_connect,
-      cmd::mongodb_find_collections,
       cmd::mongodb_find_documents,
       cmd::mongodb_count_documents,
       cmd::mongodb_aggregate_documents,

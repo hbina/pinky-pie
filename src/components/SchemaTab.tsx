@@ -10,13 +10,13 @@ import {
   Stack,
 } from "react-bootstrap";
 
-import { MongodbAnalyzeDocumentOutput, VALUE_STATES } from "../types";
+import { VALUE_STATES } from "../types";
 import { AppState } from "../App";
 
 export type SchemaTabProps = {
   status: VALUE_STATES;
   documentsFilter: Record<string, unknown>;
-  documents: MongodbAnalyzeDocumentOutput;
+  documents: Array<[string, [string, number][]]>;
 };
 
 export const SCHEMA_TAB_INITIAL_STATE: SchemaTabProps = {
@@ -59,7 +59,7 @@ export const SchemaTab = ({
             status: VALUE_STATES.LOADING,
             documents: [],
           }));
-          const result = await invoke<MongodbAnalyzeDocumentOutput>(
+          const result = await invoke<Array<[string, [string, number][]]>>(
             "mongodb_analyze_documents",
             {
               databaseName,
