@@ -1,6 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import { Stack, Tab, Tabs } from "react-bootstrap";
 import { diff } from "deep-object-diff";
 
 import { useAggregateTabState } from "./components/AggregateTab";
@@ -13,6 +12,7 @@ import { DocumentsTab } from "./components/DocumentsTab";
 import { AggregateTab } from "./components/AggregateTab";
 import { SchemaTab } from "./components/SchemaTab";
 import { useWindowDimensions } from "./util";
+import { TabView, TabViewRow } from "./components/TabView";
 
 let counter = 0;
 let previousState: AppState | undefined = undefined;
@@ -47,7 +47,8 @@ const App = () => {
   } = appStates;
 
   if (previousState) {
-    console.log("counter", counter, "diff", diff(previousState, appStates));
+    const difference = diff(previousState, appStates);
+    console.log("counter", counter, "diff", difference);
   } else {
     console.log("counter", counter, "no diff");
   }
@@ -55,9 +56,10 @@ const App = () => {
   counter += 1;
 
   return (
-    <Stack
-      direction="vertical"
+    <div
       style={{
+        display: "flex",
+        flexDirection: "column",
         padding: "5px",
         rowGap: "5px",
         height: height,
@@ -65,19 +67,19 @@ const App = () => {
     >
       <MongoDbUrlBar appStates={appStates} />
       <div hidden={databaseName && collectionName ? false : true}>
-        <Tabs defaultActiveKey="document_listing_tab">
-          <Tab eventKey="document_listing_tab" title="Documents">
+        <TabView>
+          <TabViewRow eventKey="Documents">
             <DocumentsTab appStates={appStates} />
-          </Tab>
-          <Tab eventKey="document_aggregation_tab" title="Aggregation">
+          </TabViewRow>
+          <TabViewRow eventKey="Aggregation">
             <AggregateTab appStates={appStates} />
-          </Tab>
-          <Tab eventKey="document_schema_tab" title="Schema">
+          </TabViewRow>
+          <TabViewRow eventKey="Schema">
             <SchemaTab appStates={appStates} />
-          </Tab>
-        </Tabs>
+          </TabViewRow>
+        </TabView>
       </div>
-    </Stack>
+    </div>
   );
 };
 

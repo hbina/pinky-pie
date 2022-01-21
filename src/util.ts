@@ -6,6 +6,7 @@ import {
   DatabaseSpecification,
   CollectionSpecification,
 } from "./types";
+import { ServerInfoProps } from "./components/ServerInfo";
 
 function apiCall<O>(
   funName: string,
@@ -128,3 +129,6 @@ export const mongodb_count_documents = async ({
     collectionName,
     documentsFilter,
   });
+
+export const mongodb_server_description = async () =>
+  apiCall<Omit<ServerInfoProps, "duration">>("mongodb_server_description", {});

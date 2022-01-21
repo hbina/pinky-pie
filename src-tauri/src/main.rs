@@ -7,10 +7,13 @@
 extern crate lazy_static;
 
 mod cmd;
+mod error;
+mod model;
+mod mongodb_events;
 
 fn main() {
   tauri::Builder::default()
-    .manage(cmd::AppState::default())
+    .manage(model::AppState::default())
     .invoke_handler(tauri::generate_handler![
       cmd::mongodb_connect,
       cmd::mongodb_find_collections,

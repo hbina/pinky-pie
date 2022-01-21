@@ -1,18 +1,30 @@
-import { invoke } from "@tauri-apps/api";
-import { cloneDeep } from "lodash";
-import { useEffect, useState } from "react";
+import { cloneDeep, isEmpty } from "lodash";
+import { useEffect, useMemo, useState } from "react";
 import { Card, Modal } from "react-bootstrap";
+import { Chart, AxisOptions } from "react-charts";
+import { diff } from "deep-object-diff";
 
 import { VALUE_STATES } from "../types";
 import { AppState } from "../App";
+import { mongodb_server_description } from "../util";
 
 export type ServerInfoProps = {
   visible: boolean;
-  descriptions: { address: string; server_type: string }[];
-  heartbeat:
-    | {
-        duration: number;
-        document: {
+  servers: {
+    address: string;
+    average_round_trip_time: string | undefined;
+    last_update_time: string | undefined;
+    max_wire_version: number | undefined;
+    min_wire_version: number | undefined;
+    replicat_set_name: string | undefined;
+    replicate_set_version: number | undefined;
+    server_type: string;
+    tags: Record<string, string> | undefined;
+  }[];
+  heartbeat: {
+    duration: [number, number][];
+    document:
+      | {
           connectionId: number;
           ismaster: boolean;
           localTime: {
@@ -28,15 +40,18 @@ export type ServerInfoProps = {
           minWireVersion: number;
           ok: number;
           readOnly: boolean;
-        };
-      }
-    | undefined;
+        }
+      | undefined;
+  };
 };
 
 export const SERVER_INFO_INITIAL_STATE: ServerInfoProps = {
   visible: false,
-  descriptions: [],
-  heartbeat: undefined,
+  servers: [],
+  heartbeat: {
+    duration: [],
+    document: undefined,
+  },
 };
 
 export const useServerInfoState = () => {
@@ -56,35 +71,87 @@ export const ServerInfo = ({
       state: { url, port, status: connectionState },
     },
     serverInfoState: {
-      state: { visible, descriptions, heartbeat },
+      state: { visible, servers, heartbeat },
       setState,
     },
   },
 }: Readonly<{ appStates: AppState }>) => {
   useEffect(() => {
-    const f = async () => {
-      try {
-        if (connectionState === VALUE_STATES.LOADED) {
-          setState((state) => ({
-            ...state,
-            descriptions: [],
-            hearbeat: undefined,
-          }));
-          const result = await invoke<Omit<ServerInfoProps, "duration">>(
-            "mongodb_server_description"
-          );
-          setState((state) => ({
-            ...state,
-            descriptions: result.descriptions,
-            heartbeat: result.heartbeat,
-          }));
+    const intervalId = setInterval(() => {
+      const f = async () => {
+        try {
+          if (visible && connectionState === VALUE_STATES.LOADED) {
+            const result = await mongodb_server_description();
+            const difference = diff(
+              {
+                servers: result.servers,
+                heartbeat: result.heartbeat,
+              },
+              {
+                servers,
+                heartbeat,
+              }
+            );
+            if (!isEmpty(difference)) {
+              setState((state) => ({
+                ...state,
+                servers: result.servers,
+                heartbeat: result.heartbeat,
+              }));
+            }
+          }
+        } catch (e) {
+          console.error(e);
         }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    f();
-  }, [port, url, connectionState, setState]);
+      };
+      f();
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [port, url, connectionState, servers, heartbeat, visible, setState]);
+
+  const data = useMemo(
+    () => [
+      {
+        label: "Series 1",
+        data: heartbeat.duration.map(([time, value], idx, arr) => ({
+          primary: time - arr[0][0],
+          secondary: value,
+        })),
+      },
+    ],
+    [heartbeat.duration]
+  );
+
+  const primaryAxis = useMemo<
+    AxisOptions<{
+      primary: number;
+      secondary: number;
+    }>
+  >(
+    () => ({
+      getValue: (datum) => datum.primary,
+      scaleType: "linear",
+      elementType: "line",
+    }),
+    []
+  );
+
+  const secondaryAxes = useMemo<
+    AxisOptions<{
+      primary: number;
+      secondary: number;
+    }>[]
+  >(
+    () => [
+      {
+        getValue: (datum) => datum.secondary,
+        scaleType: "linear",
+        elementType: "line",
+        label: "microseconds",
+      },
+    ],
+    []
+  );
 
   return (
     <Modal
@@ -107,7 +174,7 @@ export const ServerInfo = ({
             rowGap: "5px",
           }}
         >
-          {descriptions.length !== 0 && (
+          {servers.length !== 0 && (
             <div
               style={{
                 display: "flex",
@@ -115,13 +182,17 @@ export const ServerInfo = ({
                 columnGap: "5px",
               }}
             >
-              {descriptions.map(({ address, server_type }) => (
+              {servers.map(({ address, server_type }) => (
                 <Card key={address}>
+                  <Card.Header>Server Information</Card.Header>
                   <Card.Body>
-                    <div>
-                      <h6>Server type</h6>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
                       <p>{server_type}</p>
-                      <h6>Host {"&"} Port</h6>
                       <p>{address}</p>
                     </div>
                   </Card.Body>
@@ -129,12 +200,42 @@ export const ServerInfo = ({
               ))}
             </div>
           )}
-          {heartbeat && (
+          {data.length !== 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Card>
+                <Card.Header>Heartbeat</Card.Header>
+                <Card.Body>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      rowGap: "5px",
+                      overflowX: "auto",
+                      height: "300px",
+                    }}
+                  >
+                    <Chart
+                      options={{
+                        data,
+                        primaryAxis,
+                        secondaryAxes,
+                      }}
+                    />
+                  </div>
+                </Card.Body>{" "}
+              </Card>
+            </div>
+          )}
+          {heartbeat.document && (
             <Card>
+              <Card.Header>Other Information</Card.Header>
               <Card.Body>
                 <div>
-                  <h6>Duration</h6>
-                  <p>{heartbeat.duration} milliseconds</p>
                   <h6>Master</h6>
                   <p>{heartbeat.document.ismaster ? "true" : "false"}</p>
                   <h6>Readonly</h6>
