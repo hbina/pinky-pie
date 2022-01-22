@@ -285,7 +285,6 @@ export const AggregateTab = ({
             style={{
               display: "flex",
               flexDirection: "column",
-              overflowY: "auto",
               rowGap: "5px",
             }}
           >

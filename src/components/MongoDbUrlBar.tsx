@@ -6,6 +6,7 @@ import { AppState } from "../App";
 import { ServerInfo } from "./ServerInfo";
 import { mongodb_connect } from "../util";
 import { isEmpty } from "lodash";
+import { ServerMetric } from "./ServerMetric";
 
 export type MongodbUrlBarProps = {
   url: string;
@@ -57,6 +58,7 @@ export const MongoDbUrlBar = ({
     serverInfoState: { setState: setServerInfoState },
     aggregateTabState: { setStagesOutput: setAggregateTabStagesOutputState },
     schemaTabState: { setState: setSchemaTabState },
+    serverMetricState: { setState: setServerMetricState },
   } = appStates;
 
   useEffect(() => {
@@ -195,9 +197,29 @@ export const MongoDbUrlBar = ({
                 }))
               }
             >
-              Server Info
+              Info
             </button>
             <ServerInfo appStates={appStates} />
+          </>
+          {/* SERVER METRIC BUTTON */}
+          <>
+            <button
+              hidden={status !== VALUE_STATES.LOADED}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                height: "30px",
+              }}
+              onClick={() =>
+                setServerMetricState((state) => ({
+                  ...state,
+                  visible: true,
+                }))
+              }
+            >
+              Metric
+            </button>
+            <ServerMetric appStates={appStates} />
           </>
           {/* DATABASES SELECT */}
           <>

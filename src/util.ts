@@ -4,12 +4,13 @@ import { invoke } from "@tauri-apps/api";
 import { BsonDocument, DatabaseSpecification } from "./types";
 import { ServerInfoProps } from "./components/ServerInfo";
 
-function apiCall<O>(
+async function apiCall<O>(
   funName: string,
   args: Record<string, unknown>
 ): Promise<O> {
-  console.log(`calling ${funName} with`, args);
-  return invoke<O>(funName, args);
+  const result = await invoke<O>(funName, args);
+  console.log(`calling ${funName} with`, args, " result", result);
+  return result;
 }
 
 const getWindowDimensions = () => {
@@ -63,27 +64,10 @@ export const mongodb_aggregate_documents = async ({
     ],
   });
 
-export const mongodb_connect = async ({
-  url,
-  port,
-}: {
-  url: string;
-  port: number;
-}) =>
-  apiCall<Record<string, DatabaseSpecification>>("mongodb_connect", {
-    url,
-    port,
-  });
+export const mongodb_connect = async (args: { url: string; port: number }) =>
+  apiCall<Record<string, DatabaseSpecification>>("mongodb_connect", args);
 
-export const mongodb_find_documents = async ({
-  databaseName,
-  collectionName,
-  page,
-  perPage,
-  documentsFilter,
-  documentsProjection,
-  documentsSort,
-}: {
+export const mongodb_find_documents = async (args: {
   databaseName: string;
   collectionName: string;
   page: number;
@@ -91,31 +75,19 @@ export const mongodb_find_documents = async ({
   documentsFilter: Record<string, unknown>;
   documentsProjection: Record<string, unknown>;
   documentsSort: Record<string, unknown>;
-}) =>
-  apiCall<BsonDocument[]>("mongodb_find_documents", {
-    databaseName,
-    collectionName,
-    page,
-    perPage,
-    documentsFilter,
-    documentsProjection,
-    documentsSort,
-  });
+}) => apiCall<BsonDocument[]>("mongodb_find_documents", args);
 
-export const mongodb_count_documents = async ({
-  databaseName,
-  collectionName,
-  documentsFilter,
-}: {
+export const mongodb_count_documents = async (args: {
   databaseName: string;
   collectionName: string;
   documentsFilter: Record<string, unknown>;
-}) =>
-  apiCall<number>("mongodb_count_documents", {
-    databaseName,
-    collectionName,
-    documentsFilter,
-  });
+}) => apiCall<number>("mongodb_count_documents", args);
 
-export const mongodb_server_description = async () =>
-  apiCall<Omit<ServerInfoProps, "duration">>("mongodb_server_description", {});
+export const mongodb_server_info = async () =>
+  apiCall<ServerInfoProps>("mongodb_server_info", {});
+
+export const mongodb_server_metric = async () =>
+  apiCall<any>("mongodb_server_metric", {});
+
+export const mongodb_n_slowest_commands = async (args: { count: number }) =>
+  apiCall<any>("mongodb_n_slowest_commands", args);

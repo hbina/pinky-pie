@@ -1,15 +1,17 @@
 import { cloneDeep, isEmpty } from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { Card, Modal } from "react-bootstrap";
-import { Chart, AxisOptions } from "react-charts";
 import { diff } from "deep-object-diff";
+import CSS from "csstype";
 
 import { VALUE_STATES } from "../types";
 import { AppState } from "../App";
-import { mongodb_server_description } from "../util";
+import { mongodb_server_info } from "../util";
+import { AxisOptions, Chart } from "react-charts";
 
 export type ServerInfoProps = {
   visible: boolean;
+  status: VALUE_STATES;
   servers: {
     address: string;
     average_round_trip_time: string | undefined;
@@ -47,6 +49,7 @@ export type ServerInfoProps = {
 
 export const SERVER_INFO_INITIAL_STATE: ServerInfoProps = {
   visible: false,
+  status: VALUE_STATES.UNLOADED,
   servers: [],
   heartbeat: {
     duration: [],
@@ -71,7 +74,7 @@ export const ServerInfo = ({
       state: { url, port, status: connectionState },
     },
     serverInfoState: {
-      state: { visible, servers, heartbeat },
+      state: { visible, status, servers, heartbeat },
       setState,
     },
   },
@@ -80,8 +83,20 @@ export const ServerInfo = ({
     const intervalId = setInterval(() => {
       const f = async () => {
         try {
-          if (visible && connectionState === VALUE_STATES.LOADED) {
-            const result = await mongodb_server_description();
+          if (
+            connectionState === VALUE_STATES.LOADED &&
+            status === VALUE_STATES.UNLOADED
+          ) {
+            setState((state) => ({
+              ...state,
+              status: VALUE_STATES.LOADING,
+              servers: [],
+              heartbeat: {
+                duration: [],
+                document: undefined,
+              },
+            }));
+            const result = await mongodb_server_info();
             const difference = diff(
               {
                 servers: result.servers,
@@ -95,6 +110,7 @@ export const ServerInfo = ({
             if (!isEmpty(difference)) {
               setState((state) => ({
                 ...state,
+                status: VALUE_STATES.LOADED,
                 servers: result.servers,
                 heartbeat: result.heartbeat,
               }));
@@ -107,7 +123,16 @@ export const ServerInfo = ({
       f();
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [port, url, connectionState, servers, heartbeat, visible, setState]);
+  }, [
+    port,
+    url,
+    connectionState,
+    servers,
+    heartbeat,
+    visible,
+    status,
+    setState,
+  ]);
 
   const data = useMemo(
     () => [
@@ -153,6 +178,12 @@ export const ServerInfo = ({
     []
   );
 
+  const tableCellStyle: CSS.Properties = {
+    paddingRight: "10px",
+    paddingLeft: "10px",
+    border: "1px solid black",
+  };
+
   return (
     <Modal
       show={visible}
@@ -162,9 +193,10 @@ export const ServerInfo = ({
           visible: false,
         }))
       }
+      style={{}}
     >
       <Modal.Header closeButton>
-        <Modal.Title>Server information</Modal.Title>
+        <Modal.Title>Server Info</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <div
@@ -180,24 +212,53 @@ export const ServerInfo = ({
                 display: "flex",
                 flexDirection: "row",
                 columnGap: "5px",
+                border: "",
+                borderStyle: "inset",
+                borderRadius: "5px",
+                borderColor: "black",
+                borderWidth: 1,
+                padding: "10px",
+                overflowX: "auto",
               }}
             >
-              {servers.map(({ address, server_type }) => (
-                <Card key={address}>
-                  <Card.Header>Server Information</Card.Header>
-                  <Card.Body>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                      }}
-                    >
-                      <p>{server_type}</p>
-                      <p>{address}</p>
-                    </div>
-                  </Card.Body>
-                </Card>
-              ))}
+              {[...servers, ...servers, ...servers, ...servers].map(
+                ({ address, server_type }) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      width: "900px",
+                    }}
+                  >
+                    <table>
+                      <tr>
+                        <th style={tableCellStyle}>Server type</th>
+                        <td style={tableCellStyle}>{server_type}</td>
+                      </tr>
+                      <tr>
+                        <th style={tableCellStyle}>Address</th>
+                        <td style={tableCellStyle}>{address}</td>
+                      </tr>
+                      {heartbeat.document && (
+                        <tr>
+                          <th style={tableCellStyle}>Is master</th>
+                          <td style={tableCellStyle}>
+                            {heartbeat.document.ismaster ? "true" : "false"}
+                          </td>
+                        </tr>
+                      )}
+                      {heartbeat.document && (
+                        <tr>
+                          <th style={tableCellStyle}>Is readonly</th>
+                          <td style={tableCellStyle}>
+                            {heartbeat.document.readOnly ? "true" : "false"}
+                          </td>
+                        </tr>
+                      )}
+                    </table>
+                  </div>
+                )
+              )}
             </div>
           )}
           {data.length !== 0 && (
@@ -231,24 +292,8 @@ export const ServerInfo = ({
               </Card>
             </div>
           )}
-          {heartbeat.document && (
-            <Card>
-              <Card.Header>Other Information</Card.Header>
-              <Card.Body>
-                <div>
-                  <h6>Master</h6>
-                  <p>{heartbeat.document.ismaster ? "true" : "false"}</p>
-                  <h6>Readonly</h6>
-                  <p>{heartbeat.document.readOnly ? "true" : "false"}</p>
-                </div>
-              </Card.Body>
-            </Card>
-          )}
         </div>
       </Modal.Body>
-      <Modal.Footer>
-        <h5>Pinky Pie</h5>
-      </Modal.Footer>
     </Modal>
   );
 };

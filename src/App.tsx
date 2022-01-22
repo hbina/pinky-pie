@@ -13,6 +13,7 @@ import { AggregateTab } from "./components/AggregateTab";
 import { SchemaTab } from "./components/SchemaTab";
 import { useWindowDimensions } from "./util";
 import { TabView, TabViewRow } from "./components/TabView";
+import { useServerMetricState } from "./components/ServerMetric";
 
 let counter = 0;
 let previousState: AppState | undefined = undefined;
@@ -25,6 +26,7 @@ export const useAppState = () => {
   const documentsTabState = useDocumentsTabState();
   const aggregateTabState = useAggregateTabState();
   const serverInfoState = useServerInfoState();
+  const serverMetricState = useServerMetricState();
   const schemaTabState = useSchemaTabState();
 
   return {
@@ -33,6 +35,7 @@ export const useAppState = () => {
     documentsTabState,
     aggregateTabState,
     serverInfoState,
+    serverMetricState,
     schemaTabState,
   };
 };

@@ -3,16 +3,20 @@ use std::sync::Arc;
 
 use mongodb::{
   bson::Document,
-  event::sdam::SdamEventHandler,
+  event::{command::CommandEventHandler, sdam::SdamEventHandler},
   options::{ClientOptions, FindOptions, ServerAddress},
-  sync::Client,
-  sync::Cursor,
+  sync::{Client, Cursor},
 };
 use tauri::command;
 
-use crate::model::{AppArg, BsonType};
-use crate::mongodb_events::{SdamHandler, ServerStatus, GLOBAL};
+use crate::mongodb_events::{
+  CommandInfoHandler, CommandStatistics, ServerInfo, ServerInfoHandler, SERVER_INFO, SERVER_METRIC,
+};
 use crate::{error::PError, model::DatabaseInformation};
+use crate::{
+  model::{AppArg, BsonType},
+  mongodb_events::FinishedCommandInfo,
+};
 
 #[command]
 pub async fn mongodb_connect(
@@ -20,14 +24,16 @@ pub async fn mongodb_connect(
   url: String,
   port: u16,
 ) -> Result<Document, PError> {
-  let handler: Arc<dyn SdamEventHandler> = Arc::new(SdamHandler);
+  let sdam_handler: Arc<dyn SdamEventHandler> = Arc::new(ServerInfoHandler);
+  let command_handler: Arc<dyn CommandEventHandler> = Arc::new(CommandInfoHandler);
   let client = Client::with_options(
     ClientOptions::builder()
       .hosts(vec![ServerAddress::Tcp {
         host: url.clone(),
         port: Some(port),
       }])
-      .sdam_event_handler(handler)
+      .sdam_event_handler(sdam_handler)
+      .command_event_handler(command_handler)
       .build(),
   )?;
   let result = DatabaseInformation::from_client(&client)?;
@@ -98,9 +104,21 @@ pub async fn mongodb_aggregate_documents(
 }
 
 #[command]
-pub async fn mongodb_server_description() -> ServerStatus {
-  let result = &*GLOBAL.lock().unwrap();
+pub async fn mongodb_server_info() -> ServerInfo {
+  let result = &*SERVER_INFO.lock().unwrap();
   result.clone()
+}
+
+#[command]
+pub async fn mongodb_server_metric() -> HashMap<String, Vec<CommandStatistics>> {
+  let result = &*SERVER_METRIC.lock().unwrap();
+  result.get_access_pattern()
+}
+
+#[command]
+pub async fn mongodb_n_slowest_commands(count: usize) -> Vec<FinishedCommandInfo> {
+  let result = &*SERVER_METRIC.lock().unwrap();
+  result.get_n_slowest_commands(count)
 }
 
 #[command]

@@ -19,8 +19,10 @@ fn main() {
       cmd::mongodb_find_documents,
       cmd::mongodb_count_documents,
       cmd::mongodb_aggregate_documents,
-      cmd::mongodb_server_description,
-      cmd::mongodb_analyze_documents
+      cmd::mongodb_server_info,
+      cmd::mongodb_server_metric,
+      cmd::mongodb_analyze_documents,
+      cmd::mongodb_n_slowest_commands
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

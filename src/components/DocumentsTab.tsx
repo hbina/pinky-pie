@@ -434,8 +434,6 @@ export const DocumentsTab = ({
           display: "flex",
           flexDirection: "column",
           rowGap: "5px",
-          minHeight: `80%`,
-          overflow: "auto",
         }}
       >
         {documentsTabStatus === VALUE_STATES.UNLOADED && (
@@ -456,20 +454,6 @@ export const DocumentsTab = ({
               width: "100%",
               justifyContent: "center",
               alignItems: "stretch",
-              height: `${height * 0.6}px`,
-            }}
-          >
-            <Spinner animation="border" role="status" />
-          </div>
-        )}
-        {documentsTabStatus === VALUE_STATES.LOADING && (
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              justifyContent: "center",
-              alignItems: "center",
-              height: `${height * 0.6}px`,
             }}
           >
             <Spinner animation="border" role="status" />
@@ -481,17 +465,6 @@ export const DocumentsTab = ({
               display: "flex",
               flexDirection: "column",
               rowGap: "5px",
-              height: `${
-                height -
-                // the URL bar at the top
-                (5 + 30 + 5) -
-                // tabs
-                50 -
-                // page and perpage
-                (5 + 30 + 5) -
-                // document filters, projections and sorts
-                (30 * 3 + 5)
-              }px`,
             }}
           >
             {documents.map((document, idx) => (
