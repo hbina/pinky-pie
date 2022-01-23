@@ -10,22 +10,59 @@ use mongodb::{
     command::{
       CommandEventHandler, CommandFailedEvent, CommandStartedEvent, CommandSucceededEvent,
     },
-    sdam::{SdamEventHandler, ServerHeartbeatSucceededEvent, TopologyDescriptionChangedEvent},
+    sdam::{
+      SdamEventHandler, ServerHeartbeatFailedEvent, ServerHeartbeatSucceededEvent,
+      TopologyDescriptionChangedEvent,
+    },
   },
   ServerType,
 };
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
-  pub static ref SERVER_INFO: Arc<Mutex<ServerInfo>> = Arc::new(Mutex::new(ServerInfo::default()));
-  pub static ref SERVER_METRIC: Arc<Mutex<ServerMetric>> =
-    Arc::new(Mutex::new(ServerMetric::default()));
+  pub static ref DATABASE_TOPOLOGY: Arc<Mutex<DatabaseTopology>> =
+    Arc::new(Mutex::new(DatabaseTopology::default()));
+  pub static ref DATABASE_HEARTBEAT: Arc<Mutex<DatabaseHeartbeat>> =
+    Arc::new(Mutex::new(DatabaseHeartbeat::default()));
+  pub static ref SERVER_METRIC: Arc<Mutex<DatabaseMetric>> =
+    Arc::new(Mutex::new(DatabaseMetric::default()));
 }
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
-pub struct ServerInfo {
+pub struct DatabaseTopology {
   servers: Vec<ServerDescription>,
-  heartbeat: ServerHeartbeat,
+}
+
+impl DatabaseTopology {
+  pub fn replace_document(&mut self, event: TopologyDescriptionChangedEvent) {
+    let servers = event
+      .new_description
+      .servers()
+      .iter()
+      .map(|(address, info)| ServerDescription {
+        address: address.to_string(),
+        average_round_trip_time: info
+          .average_round_trip_time()
+          .map(|v| v.as_millis().to_string()),
+        last_update_time: info.last_update_time().map(|v| v.to_rfc3339_string()),
+        max_wire_version: info.max_wire_version(),
+        min_wire_version: info.min_wire_version(),
+        replicat_set_name: info.replica_set_name().map(|s| s.to_string()),
+        replicate_set_version: info.replica_set_version(),
+        server_type: SerializableServerType::from(info.server_type()),
+        tags: info.tags().map(|s| {
+          s.iter()
+            .map(|(k, v)| (k.clone(), Bson::String(v.clone())))
+            .collect()
+        }),
+      })
+      .collect::<Vec<_>>();
+    self.servers = servers;
+  }
+
+  pub fn get_database_topology(&self) -> Vec<ServerDescription> {
+    self.servers.clone()
+  }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -56,55 +93,45 @@ pub struct ServerDescription {
   pub tags: Option<Document>,
 }
 
-impl ServerDescription {
-  pub fn from_document(event: TopologyDescriptionChangedEvent) -> Vec<ServerDescription> {
-    let servers = event
-      .new_description
-      .servers()
-      .iter()
-      .map(|(address, info)| ServerDescription {
-        address: address.to_string(),
-        average_round_trip_time: info
-          .average_round_trip_time()
-          .map(|v| v.as_millis().to_string()),
-        last_update_time: info.last_update_time().map(|v| v.to_rfc3339_string()),
-        max_wire_version: info.max_wire_version(),
-        min_wire_version: info.min_wire_version(),
-        replicat_set_name: info.replica_set_name().map(|s| s.to_string()),
-        replicate_set_version: info.replica_set_version(),
-        server_type: SerializableServerType::from(info.server_type()),
-        tags: info.tags().map(|s| {
-          s.iter()
-            .map(|(k, v)| (k.clone(), Bson::String(v.clone())))
-            .collect()
-        }),
-      })
-      .collect::<Vec<_>>();
-    servers
-  }
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum FinishedHeartbeat {
+  SUCCEEDED(usize),
+  FAILED(usize),
 }
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
-pub struct ServerHeartbeat {
-  pub duration: Vec<(i64, u64)>,
-  pub document: Option<Document>,
+pub struct DatabaseHeartbeat {
+  pub duration: Vec<FinishedHeartbeat>,
 }
 
-impl ServerHeartbeat {
-  pub fn add_event(&mut self, event: ServerHeartbeatSucceededEvent) {
-    self.duration.push((
-      event
-        .reply
-        .get_datetime("localTime")
-        .clone()
-        .unwrap()
-        .timestamp_millis(),
-      event.duration.as_nanos() as u64,
+impl DatabaseHeartbeat {
+  pub fn add_succeeded_event(&mut self, event: ServerHeartbeatSucceededEvent) {
+    self.duration.push(FinishedHeartbeat::SUCCEEDED(
+      event.duration.as_nanos() as usize
     ));
-    if self.duration.len() == 21 {
+    if self.duration.len() == 100 {
       self.duration.remove(0);
     }
-    self.document = Some(event.reply);
+  }
+
+  pub fn add_failed_event(&mut self, event: ServerHeartbeatFailedEvent) {
+    self
+      .duration
+      .push(FinishedHeartbeat::FAILED(event.duration.as_nanos() as usize));
+    if self.duration.len() == 100 {
+      self.duration.remove(0);
+    }
+  }
+
+  pub fn get_connection_heartbeat(&self) -> Vec<(usize, usize)> {
+    self
+      .duration
+      .iter()
+      .map(|v| match v {
+        FinishedHeartbeat::SUCCEEDED(s) => (*s, 0),
+        FinishedHeartbeat::FAILED(s) => (0, *s),
+      })
+      .collect()
   }
 }
 
@@ -112,13 +139,18 @@ pub struct ServerInfoHandler;
 
 impl SdamEventHandler for ServerInfoHandler {
   fn handle_topology_description_changed_event(&self, event: TopologyDescriptionChangedEvent) {
-    let mut handle = SERVER_INFO.as_ref().lock().unwrap();
-    handle.servers = ServerDescription::from_document(event);
+    let mut handle = DATABASE_TOPOLOGY.as_ref().lock().unwrap();
+    handle.replace_document(event);
+  }
+
+  fn handle_server_heartbeat_failed_event(&self, event: ServerHeartbeatFailedEvent) {
+    let mut handle = DATABASE_HEARTBEAT.as_ref().lock().unwrap();
+    handle.add_failed_event(event);
   }
 
   fn handle_server_heartbeat_succeeded_event(&self, event: ServerHeartbeatSucceededEvent) {
-    let mut handle = SERVER_INFO.as_ref().lock().unwrap();
-    handle.heartbeat.add_event(event);
+    let mut handle = DATABASE_HEARTBEAT.as_ref().lock().unwrap();
+    handle.add_succeeded_event(event);
   }
 }
 
@@ -183,13 +215,13 @@ impl FinishedCommandInfo {
 }
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
-pub struct ServerMetric {
+pub struct DatabaseMetric {
   commands: HashMap<i32, CommandStatistics>,
   // FIXME: Prevents duplicate keys, reimplement using a simple Vec
   slowest_commands: BTreeMap<u64, i32>,
 }
 
-impl ServerMetric {
+impl DatabaseMetric {
   pub fn add_init_command(&mut self, event: CommandStartedEvent) {
     // Insert into commands
     let old_cmd_stat = self.commands.insert(

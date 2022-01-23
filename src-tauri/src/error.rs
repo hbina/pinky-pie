@@ -9,8 +9,6 @@ pub enum PError {
   CannotFindServerInfo,
   CursorFailure,
   DocumentCountFailed,
-  // DocumentAggregateFailed,
-  // DocumentFindFailed,
   MongodbError(String, Vec<String>),
   BsonSerializationError(String),
 }

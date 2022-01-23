@@ -83,11 +83,11 @@ export const mongodb_count_documents = async (args: {
   documentsFilter: Record<string, unknown>;
 }) => apiCall<number>("mongodb_count_documents", args);
 
-export const mongodb_server_info = async () =>
-  apiCall<ServerInfoProps>("mongodb_server_info", {});
+export const mongodb_get_database_topology = async () =>
+  apiCall<ServerInfoProps["servers"]>("mongodb_get_database_topology", {});
 
-export const mongodb_server_metric = async () =>
-  apiCall<any>("mongodb_server_metric", {});
+export const mongodb_get_connection_heartbeat = async () =>
+  apiCall<ServerInfoProps["heartbeat"]>("mongodb_get_connection_heartbeat", {});
 
 export const mongodb_n_slowest_commands = async (args: { count: number }) =>
   apiCall<any>("mongodb_n_slowest_commands", args);

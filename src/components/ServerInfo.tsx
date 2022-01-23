@@ -4,7 +4,10 @@ import CSS from "csstype";
 
 import { DISPLAY_TYPES, VALUE_STATES } from "../types";
 import { AppState } from "../App";
-import { mongodb_server_info } from "../util";
+import {
+  mongodb_get_connection_heartbeat,
+  mongodb_get_database_topology,
+} from "../util";
 import { AxisOptions, Chart } from "react-charts";
 import { COLOR_THEME } from "../constant";
 
@@ -20,36 +23,12 @@ export type ServerInfoProps = {
     server_type: string;
     tags: Record<string, string> | undefined;
   }[];
-  heartbeat: {
-    duration: [number, number][];
-    document:
-      | {
-          connectionId: number;
-          ismaster: boolean;
-          localTime: {
-            $date: {
-              $numberLong: string;
-            };
-          };
-          logicalSessionTimeoutMinutes: number;
-          maxBsonObjectSize: number;
-          maxMessageSizeBytes: number;
-          maxWireVersion: number;
-          maxWriteBatchSize: number;
-          minWireVersion: number;
-          ok: number;
-          readOnly: boolean;
-        }
-      | undefined;
-  };
+  heartbeat: [number, number][];
 };
 
 export const SERVER_INFO_INITIAL_STATE: ServerInfoProps = {
   servers: [],
-  heartbeat: {
-    duration: Array.from({ length: 10 }, () => [0, 0]),
-    document: undefined,
-  },
+  heartbeat: Array.from({ length: 20 }, () => [0, 0]),
 };
 
 export const useServerInfoState = () => {
@@ -80,11 +59,10 @@ export const ServerInfo = ({
       const f = async () => {
         try {
           if (connectionState === VALUE_STATES.LOADED) {
-            const result = await mongodb_server_info();
+            const result = await mongodb_get_database_topology();
             setState((state) => ({
               ...state,
-              servers: result.servers,
-              heartbeat: result.heartbeat,
+              servers: result,
             }));
           }
         } catch (e) {
@@ -92,21 +70,48 @@ export const ServerInfo = ({
         }
       };
       f();
-    }, 1000);
+    }, 5000);
+    return () => clearInterval(intervalId);
+  }, [port, url, connectionState, servers, setState]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const f = async () => {
+        try {
+          if (connectionState === VALUE_STATES.LOADED) {
+            const result = await mongodb_get_connection_heartbeat();
+            setState((state) => ({
+              ...state,
+              heartbeat: result,
+            }));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      f();
+    }, 5000);
     return () => clearInterval(intervalId);
   }, [port, url, connectionState, servers, setState]);
 
   const data = useMemo(
     () => [
       {
-        label: "Series 1",
-        data: heartbeat.duration.map(([time, value], idx) => ({
+        label: "Succeeded heartbeats",
+        data: heartbeat.map(([value], idx) => ({
+          primary: idx,
+          secondary: value,
+        })),
+      },
+      {
+        label: "Failed heartbeats",
+        data: heartbeat.map(([_, value], idx) => ({
           primary: idx,
           secondary: value,
         })),
       },
     ],
-    [heartbeat.duration]
+    [heartbeat]
   );
 
   const primaryAxis = useMemo<
@@ -196,22 +201,6 @@ export const ServerInfo = ({
                     <th style={tableCellStyle}>Server type</th>
                     <td style={tableCellStyle}>{server_type}</td>
                   </tr>
-                  {heartbeat.document && (
-                    <tr key={3}>
-                      <th style={tableCellStyle}>Is master</th>
-                      <td style={tableCellStyle}>
-                        {heartbeat.document.ismaster ? "true" : "false"}
-                      </td>
-                    </tr>
-                  )}
-                  {heartbeat.document && (
-                    <tr key={4}>
-                      <th style={tableCellStyle}>Is readonly</th>
-                      <td style={tableCellStyle}>
-                        {heartbeat.document.readOnly ? "true" : "false"}
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>

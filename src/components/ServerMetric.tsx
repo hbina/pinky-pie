@@ -45,7 +45,6 @@ export const ServerMetric = ({
             const result = await mongodb_get_commands_statistics_per_sec({
               count: 100,
             });
-            console.log("result", result);
             setState((state) => ({
               ...state,
               cmds_per_sec: result,
@@ -56,7 +55,7 @@ export const ServerMetric = ({
         }
       };
       f();
-    }, 1000);
+    }, 5000);
     return () => clearInterval(intervalId);
   }, [port, url, connectionState, setState]);
 

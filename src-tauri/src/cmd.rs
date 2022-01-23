@@ -10,7 +10,8 @@ use mongodb::{
 use tauri::command;
 
 use crate::mongodb_events::{
-  CommandInfoHandler, ServerInfo, ServerInfoHandler, SERVER_INFO, SERVER_METRIC,
+  CommandInfoHandler, ServerDescription, ServerInfoHandler, DATABASE_HEARTBEAT, DATABASE_TOPOLOGY,
+  SERVER_METRIC,
 };
 use crate::{error::PError, model::DatabaseInformation};
 use crate::{
@@ -104,21 +105,27 @@ pub async fn mongodb_aggregate_documents(
 }
 
 #[command]
-pub async fn mongodb_server_info() -> ServerInfo {
-  let result = &*SERVER_INFO.lock().unwrap();
-  result.clone()
+pub async fn mongodb_get_database_topology() -> Vec<ServerDescription> {
+  let handle = &*DATABASE_TOPOLOGY.lock().unwrap();
+  handle.get_database_topology()
+}
+
+#[command]
+pub async fn mongodb_get_connection_heartbeat() -> Vec<(usize, usize)> {
+  let handle = &*DATABASE_HEARTBEAT.lock().unwrap();
+  handle.get_connection_heartbeat()
 }
 
 #[command]
 pub async fn mongodb_get_commands_statistics_per_sec(count: usize) -> Vec<(usize, usize, usize)> {
-  let result = &*SERVER_METRIC.lock().unwrap();
-  result.get_commands_statistics_per_sec(count)
+  let handle = &*SERVER_METRIC.lock().unwrap();
+  handle.get_commands_statistics_per_sec(count)
 }
 
 #[command]
 pub async fn mongodb_n_slowest_commands(count: usize) -> Vec<FinishedCommandInfo> {
-  let result = &*SERVER_METRIC.lock().unwrap();
-  result.get_n_slowest_commands(count)
+  let handle = &*SERVER_METRIC.lock().unwrap();
+  handle.get_n_slowest_commands(count)
 }
 
 #[command]
