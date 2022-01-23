@@ -1,5 +1,5 @@
 import { cloneDeep } from "lodash";
-import { Card, Spinner } from "react-bootstrap";
+import { Spinner } from "react-bootstrap";
 import ReactJson from "react-json-view";
 import { COLOR_THEME } from "../constant";
 

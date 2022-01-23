@@ -45,11 +45,14 @@ export type AggregateTabStageInput = {
   stageBody: string;
 };
 
-export const AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE: AggregateTabStageInput = {
-  collapsed: false,
-  stageOperation: AGGREGATE_OPERATIONS[0],
-  stageBody: "{}",
-};
+export const AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE: AggregateTabStageInput[] =
+  [
+    {
+      collapsed: false,
+      stageOperation: AGGREGATE_OPERATIONS[0],
+      stageBody: "{}",
+    },
+  ];
 
 export type AggregateTabInputProps = {
   documentWidth: number;
@@ -66,24 +69,26 @@ export type AggregateTabStageOutput = {
   documents: Record<string, unknown>[];
 };
 
-export const AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE: AggregateTabStageOutput =
-  {
-    status: VALUE_STATES.UNLOADED,
-    documents: [],
-  };
+export const AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE: AggregateTabStageOutput[] =
+  [
+    {
+      status: VALUE_STATES.UNLOADED,
+      documents: [],
+    },
+  ];
 
 export const useAggregateTabState = () => {
   const [input, setInput] = useState<AggregateTabInputProps>(
     AGGREGATE_TAB_INPUT_INITIAL_STATE
   );
 
-  const [stagesInput, setStagesInput] = useState<AggregateTabStageInput[]>([
-    AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE,
-  ]);
+  const [stagesInput, setStagesInput] = useState<AggregateTabStageInput[]>(
+    AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE
+  );
 
-  const [stagesOutput, setStagesOutput] = useState<AggregateTabStageOutput[]>([
-    AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE,
-  ]);
+  const [stagesOutput, setStagesOutput] = useState<AggregateTabStageOutput[]>(
+    AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE
+  );
 
   return {
     input,

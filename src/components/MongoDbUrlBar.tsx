@@ -4,9 +4,13 @@ import { isEmpty } from "lodash";
 
 import { VALUE_STATES, DatabaseSpecification, DISPLAY_TYPES } from "../types";
 import { AppState } from "../App";
-import { ServerInfo } from "./ServerInfo";
 import { mongodb_connect } from "../util";
-import { ServerMetric } from "./ServerMetric";
+import { DOCUMENTS_TAB_INITIATE_STATE } from "./DocumentsTab";
+import {
+  AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE,
+  AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE,
+} from "./AggregateTab";
+import { SCHEMA_TAB_INITIAL_STATE } from "./SchemaTab";
 
 export type MongodbUrlBarProps = {
   url: string;
@@ -55,7 +59,10 @@ export const MongoDbUrlBar = ({
       setState,
     },
     documentsTabState: { setState: setDocumentsTabState },
-    aggregateTabState: { setStagesOutput: setAggregateTabStagesOutputState },
+    aggregateTabState: {
+      setStagesInput: setAggregateTabStagesInputState,
+      setStagesOutput: setAggregateTabStagesOutputState,
+    },
     schemaTabState: { setState: setSchemaTabState },
     setDisplay,
   } = appStates;
@@ -220,20 +227,14 @@ export const MongoDbUrlBar = ({
                     ...state,
                     collectionName: value.target.value,
                   }));
-                  setDocumentsTabState((state) => ({
-                    ...state,
-                    status: VALUE_STATES.UNLOADED,
-                  }));
-                  setAggregateTabStagesOutputState((state) =>
-                    state.map((s) => ({
-                      ...s,
-                      status: VALUE_STATES.UNLOADED,
-                    }))
+                  setDocumentsTabState(DOCUMENTS_TAB_INITIATE_STATE);
+                  setAggregateTabStagesInputState(
+                    AGGREGATE_TAB_STAGE_INPUT_INITIAL_STATE
                   );
-                  setSchemaTabState((state) => ({
-                    ...state,
-                    status: VALUE_STATES.UNLOADED,
-                  }));
+                  setAggregateTabStagesOutputState(
+                    AGGREGATE_TAB_STAGE_OUTPUT_INITIAL_STATE
+                  );
+                  setSchemaTabState(SCHEMA_TAB_INITIAL_STATE);
                 }}
               >
                 {!collectionName && <option key={0} value={undefined}></option>}
