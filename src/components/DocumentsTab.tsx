@@ -156,6 +156,7 @@ export const DocumentsTab = ({
             style={{
               display: "flex",
               flexDirection: "row",
+              columnGap: "1px",
             }}
           >
             <InputGroup.Text
@@ -191,6 +192,7 @@ export const DocumentsTab = ({
             style={{
               display: "flex",
               flexDirection: "row",
+              columnGap: "1px",
               height: "30px",
             }}
           >
@@ -227,6 +229,7 @@ export const DocumentsTab = ({
             style={{
               display: "flex",
               flexDirection: "row",
+              columnGap: "1px",
               height: "30px",
             }}
           >

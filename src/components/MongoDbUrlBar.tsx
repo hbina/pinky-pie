@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Spinner, Form, InputGroup } from "react-bootstrap";
+import { isEmpty } from "lodash";
 
-import { VALUE_STATES, DatabaseSpecification } from "../types";
+import { VALUE_STATES, DatabaseSpecification, DISPLAY_TYPES } from "../types";
 import { AppState } from "../App";
 import { ServerInfo } from "./ServerInfo";
 import { mongodb_connect } from "../util";
-import { isEmpty } from "lodash";
 import { ServerMetric } from "./ServerMetric";
 
 export type MongodbUrlBarProps = {
@@ -55,10 +55,9 @@ export const MongoDbUrlBar = ({
       setState,
     },
     documentsTabState: { setState: setDocumentsTabState },
-    serverInfoState: { setState: setServerInfoState },
     aggregateTabState: { setStagesOutput: setAggregateTabStagesOutputState },
     schemaTabState: { setState: setSchemaTabState },
-    serverMetricState: { setState: setServerMetricState },
+    setDisplay,
   } = appStates;
 
   useEffect(() => {
@@ -74,15 +73,14 @@ export const MongoDbUrlBar = ({
             collectionsState: VALUE_STATES.UNLOADED,
             collectionName: undefined,
           }));
-          const databases = await mongodb_connect({
+          const result = await mongodb_connect({
             url,
             port,
           });
-          console.log("databases", databases);
           setState((state) => ({
             ...state,
             status: VALUE_STATES.LOADED,
-            databases,
+            databases: result,
             databasesState: VALUE_STATES.LOADED,
           }));
         } catch (error) {
@@ -181,46 +179,6 @@ export const MongoDbUrlBar = ({
           >
             {status === VALUE_STATES.LOADED ? "Refresh" : "Connect"}
           </button>
-          {/* SERVER INFO BUTTON */}
-          <>
-            <button
-              hidden={status !== VALUE_STATES.LOADED}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                height: "30px",
-              }}
-              onClick={() =>
-                setServerInfoState((state) => ({
-                  ...state,
-                  visible: true,
-                }))
-              }
-            >
-              Info
-            </button>
-            <ServerInfo appStates={appStates} />
-          </>
-          {/* SERVER METRIC BUTTON */}
-          <>
-            <button
-              hidden={status !== VALUE_STATES.LOADED}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                height: "30px",
-              }}
-              onClick={() =>
-                setServerMetricState((state) => ({
-                  ...state,
-                  visible: true,
-                }))
-              }
-            >
-              Metric
-            </button>
-            <ServerMetric appStates={appStates} />
-          </>
           {/* DATABASES SELECT */}
           <>
             {databasesState === VALUE_STATES.UNLOADED && <div></div>}
@@ -288,6 +246,42 @@ export const MongoDbUrlBar = ({
             )}
           </>
         </div>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          columnGap: "5px",
+        }}
+      >
+        {/* SERVER INFO BUTTON */}
+        <>
+          <button
+            hidden={status !== VALUE_STATES.LOADED}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              height: "30px",
+            }}
+            onClick={() => setDisplay(DISPLAY_TYPES.INFO)}
+          >
+            Info
+          </button>
+        </>
+        {/* SERVER METRIC BUTTON */}
+        <>
+          <button
+            hidden={status !== VALUE_STATES.LOADED}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              height: "30px",
+            }}
+            onClick={() => setDisplay(DISPLAY_TYPES.METRIC)}
+          >
+            Metric
+          </button>
+        </>
       </div>
     </div>
   );

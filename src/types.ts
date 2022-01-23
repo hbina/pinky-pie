@@ -26,3 +26,9 @@ export enum CONTAINER_STATUS {
   ENABLED = "ENABLED",
   DISABLED = "DISABLED",
 }
+
+export enum DISPLAY_TYPES {
+  MAIN = "MAIN",
+  INFO = "INFO",
+  METRIC = "METRIC",
+}

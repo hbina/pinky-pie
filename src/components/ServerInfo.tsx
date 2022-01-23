@@ -1,17 +1,14 @@
-import { cloneDeep, isEmpty } from "lodash";
 import { useEffect, useMemo, useState } from "react";
-import { Card, Modal } from "react-bootstrap";
-import { diff } from "deep-object-diff";
+import { Card } from "react-bootstrap";
 import CSS from "csstype";
 
-import { VALUE_STATES } from "../types";
+import { DISPLAY_TYPES, VALUE_STATES } from "../types";
 import { AppState } from "../App";
 import { mongodb_server_info } from "../util";
 import { AxisOptions, Chart } from "react-charts";
+import { COLOR_THEME } from "../constant";
 
 export type ServerInfoProps = {
-  visible: boolean;
-  status: VALUE_STATES;
   servers: {
     address: string;
     average_round_trip_time: string | undefined;
@@ -48,11 +45,9 @@ export type ServerInfoProps = {
 };
 
 export const SERVER_INFO_INITIAL_STATE: ServerInfoProps = {
-  visible: false,
-  status: VALUE_STATES.UNLOADED,
   servers: [],
   heartbeat: {
-    duration: [],
+    duration: Array.from({ length: 10 }, () => [0, 0]),
     document: undefined,
   },
 };
@@ -74,47 +69,23 @@ export const ServerInfo = ({
       state: { url, port, status: connectionState },
     },
     serverInfoState: {
-      state: { visible, status, servers, heartbeat },
+      state: { servers, heartbeat },
       setState,
     },
+    setDisplay,
   },
 }: Readonly<{ appStates: AppState }>) => {
   useEffect(() => {
     const intervalId = setInterval(() => {
       const f = async () => {
         try {
-          if (
-            connectionState === VALUE_STATES.LOADED &&
-            status === VALUE_STATES.UNLOADED
-          ) {
+          if (connectionState === VALUE_STATES.LOADED) {
+            const result = await mongodb_server_info();
             setState((state) => ({
               ...state,
-              status: VALUE_STATES.LOADING,
-              servers: [],
-              heartbeat: {
-                duration: [],
-                document: undefined,
-              },
+              servers: result.servers,
+              heartbeat: result.heartbeat,
             }));
-            const result = await mongodb_server_info();
-            const difference = diff(
-              {
-                servers: result.servers,
-                heartbeat: result.heartbeat,
-              },
-              {
-                servers,
-                heartbeat,
-              }
-            );
-            if (!isEmpty(difference)) {
-              setState((state) => ({
-                ...state,
-                status: VALUE_STATES.LOADED,
-                servers: result.servers,
-                heartbeat: result.heartbeat,
-              }));
-            }
           }
         } catch (e) {
           console.error(e);
@@ -123,23 +94,14 @@ export const ServerInfo = ({
       f();
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [
-    port,
-    url,
-    connectionState,
-    servers,
-    heartbeat,
-    visible,
-    status,
-    setState,
-  ]);
+  }, [port, url, connectionState, servers, setState]);
 
   const data = useMemo(
     () => [
       {
         label: "Series 1",
-        data: heartbeat.duration.map(([time, value], idx, arr) => ({
-          primary: time - arr[0][0],
+        data: heartbeat.duration.map(([time, value], idx) => ({
+          primary: idx,
           secondary: value,
         })),
       },
@@ -185,115 +147,99 @@ export const ServerInfo = ({
   };
 
   return (
-    <Modal
-      show={visible}
-      onHide={() =>
-        setState((state) => ({
-          ...cloneDeep(state),
-          visible: false,
-        }))
-      }
-      style={{}}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        padding: "5px",
+        rowGap: "5px",
+      }}
     >
-      <Modal.Header closeButton>
-        <Modal.Title>Server Info</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+        }}
+      >
+        <button onClick={() => setDisplay(DISPLAY_TYPES.MAIN)}>Back</button>
+      </div>
+      {servers.length !== 0 && (
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            rowGap: "5px",
+            flexDirection: "row",
+            columnGap: "5px",
+            padding: "10px",
+            overflowX: "auto",
           }}
         >
-          {servers.length !== 0 && (
+          {servers.map(({ address, server_type }, idx) => (
             <div
+              key={address}
               style={{
                 display: "flex",
-                flexDirection: "row",
-                columnGap: "5px",
-                border: "",
                 borderStyle: "inset",
-                borderRadius: "5px",
                 borderColor: "black",
-                borderWidth: 1,
-                padding: "10px",
-                overflowX: "auto",
+                borderWidth: "1px",
+                borderRadius: "10px",
+                padding: "20px",
+                backgroundColor: COLOR_THEME,
               }}
             >
-              {[...servers, ...servers, ...servers, ...servers].map(
-                ({ address, server_type }) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      width: "900px",
-                    }}
-                  >
-                    <table>
-                      <tr>
-                        <th style={tableCellStyle}>Server type</th>
-                        <td style={tableCellStyle}>{server_type}</td>
-                      </tr>
-                      <tr>
-                        <th style={tableCellStyle}>Address</th>
-                        <td style={tableCellStyle}>{address}</td>
-                      </tr>
-                      {heartbeat.document && (
-                        <tr>
-                          <th style={tableCellStyle}>Is master</th>
-                          <td style={tableCellStyle}>
-                            {heartbeat.document.ismaster ? "true" : "false"}
-                          </td>
-                        </tr>
-                      )}
-                      {heartbeat.document && (
-                        <tr>
-                          <th style={tableCellStyle}>Is readonly</th>
-                          <td style={tableCellStyle}>
-                            {heartbeat.document.readOnly ? "true" : "false"}
-                          </td>
-                        </tr>
-                      )}
-                    </table>
-                  </div>
-                )
-              )}
+              <table key={idx}>
+                <tbody>
+                  <tr key={1}>
+                    <th style={tableCellStyle}>Address</th>
+                    <td style={tableCellStyle}>{address}</td>
+                  </tr>
+                  <tr key={2}>
+                    <th style={tableCellStyle}>Server type</th>
+                    <td style={tableCellStyle}>{server_type}</td>
+                  </tr>
+                  {heartbeat.document && (
+                    <tr key={3}>
+                      <th style={tableCellStyle}>Is master</th>
+                      <td style={tableCellStyle}>
+                        {heartbeat.document.ismaster ? "true" : "false"}
+                      </td>
+                    </tr>
+                  )}
+                  {heartbeat.document && (
+                    <tr key={4}>
+                      <th style={tableCellStyle}>Is readonly</th>
+                      <td style={tableCellStyle}>
+                        {heartbeat.document.readOnly ? "true" : "false"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-          {data.length !== 0 && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <Card>
-                <Card.Header>Heartbeat</Card.Header>
-                <Card.Body>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      rowGap: "5px",
-                      overflowX: "auto",
-                      height: "300px",
-                    }}
-                  >
-                    <Chart
-                      options={{
-                        data,
-                        primaryAxis,
-                        secondaryAxes,
-                      }}
-                    />
-                  </div>
-                </Card.Body>{" "}
-              </Card>
-            </div>
-          )}
+          ))}
         </div>
-      </Modal.Body>
-    </Modal>
+      )}
+      <Card>
+        <Card.Header>Heartbeat</Card.Header>
+        <Card.Body>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              rowGap: "5px",
+              overflowX: "auto",
+              height: "300px",
+            }}
+          >
+            <Chart
+              options={{
+                data,
+                primaryAxis,
+                secondaryAxes,
+              }}
+            />
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
   );
 };

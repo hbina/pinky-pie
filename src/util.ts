@@ -9,7 +9,7 @@ async function apiCall<O>(
   args: Record<string, unknown>
 ): Promise<O> {
   const result = await invoke<O>(funName, args);
-  console.log(`calling ${funName} with`, args, " result", result);
+  // console.log(`calling ${funName} with`, args, " result", result);
   return result;
 }
 
@@ -91,3 +91,11 @@ export const mongodb_server_metric = async () =>
 
 export const mongodb_n_slowest_commands = async (args: { count: number }) =>
   apiCall<any>("mongodb_n_slowest_commands", args);
+
+export const mongodb_get_commands_statistics_per_sec = async (args: {
+  count: number;
+}) =>
+  apiCall<[number, number, number][]>(
+    "mongodb_get_commands_statistics_per_sec",
+    args
+  );

@@ -99,7 +99,7 @@ impl ServerHeartbeat {
         .clone()
         .unwrap()
         .timestamp_millis(),
-      event.duration.as_millis() as u64,
+      event.duration.as_nanos() as u64,
     ));
     if self.duration.len() == 21 {
       self.duration.remove(0);
@@ -147,7 +147,7 @@ pub struct CommandStatistics {
   pub name: String,
   pub status: CommandStatus,
   pub command: Document,
-  pub intercepted_time: u64,
+  pub intercepted_time: usize,
 }
 
 impl CommandStatistics {
@@ -160,7 +160,7 @@ impl CommandStatistics {
       intercepted_time: SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_millis() as u64,
+        .as_millis() as usize,
     }
   }
 }
@@ -185,16 +185,12 @@ impl FinishedCommandInfo {
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct ServerMetric {
   commands: HashMap<i32, CommandStatistics>,
-  access_pattern: HashMap<String, Vec<i32>>,
-  slowest_commands: BTreeMap<u64, FinishedCommandInfo>,
+  // FIXME: Prevents duplicate keys, reimplement using a simple Vec
+  slowest_commands: BTreeMap<u64, i32>,
 }
 
 impl ServerMetric {
   pub fn add_init_command(&mut self, event: CommandStartedEvent) {
-    // Insert into access_pattern
-    let database_entry = self.access_pattern.entry(event.db).or_default();
-    database_entry.push(event.request_id);
-
     // Insert into commands
     let old_cmd_stat = self.commands.insert(
       event.request_id,
@@ -215,10 +211,7 @@ impl ServerMetric {
         time_taken,
         message: format!("{}", event.failure),
       });
-      self.slowest_commands.insert(
-        time_taken,
-        FinishedCommandInfo::new(time_taken, cmd_stat.name.clone(), cmd_stat.command.clone()),
-      );
+      self.slowest_commands.insert(time_taken, event.request_id);
     } else {
       eprintln!(
         "Cannot find the failed command with request_id:{} event:{:?}",
@@ -234,10 +227,7 @@ impl ServerMetric {
         time_taken,
         reply: event.reply,
       });
-      self.slowest_commands.insert(
-        time_taken,
-        FinishedCommandInfo::new(time_taken, cmd_stat.name.clone(), cmd_stat.command.clone()),
-      );
+      self.slowest_commands.insert(time_taken, event.request_id);
     } else {
       eprintln!(
         "Cannot find the successful command with request_id:{} event:{:?}",
@@ -246,15 +236,35 @@ impl ServerMetric {
     }
   }
 
-  pub fn get_access_pattern(&self) -> HashMap<String, Vec<CommandStatistics>> {
-    let mut result = HashMap::<String, Vec<CommandStatistics>>::new();
-    for (database_name, ids) in &self.access_pattern {
-      let mut commands = Vec::<CommandStatistics>::default();
-      for id in ids {
-        let stat = self.commands.get(id).unwrap();
-        commands.push(stat.clone());
+  pub fn get_commands_statistics_per_sec(&self, count: usize) -> Vec<(usize, usize, usize)> {
+    let time_current = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .unwrap()
+      .as_millis() as usize;
+    let time_count_secs_ago = time_current - (count * 1000);
+    let mut result = vec![(0, 0, 0); count];
+    let cmds_time = self.commands.iter().filter_map(|(_, s)| {
+      if s.intercepted_time > time_count_secs_ago {
+        let time_idx = s.intercepted_time % time_count_secs_ago;
+        let cmd_status_idx = match s.status {
+          CommandStatus::STARTED => 0,
+          CommandStatus::FAILED(_) => 1,
+          CommandStatus::SUCCESSFUL(_) => 2,
+        };
+        Some((cmd_status_idx, time_idx))
+      } else {
+        None
       }
-      result.insert(database_name.clone(), commands);
+    });
+    for (cmd_status_idx, time_idx) in cmds_time {
+      let idx = time_idx / 1000;
+      if cmd_status_idx == 0 {
+        result[idx].0 += 1;
+      } else if time_idx == 1 {
+        result[idx].1 += 1;
+      } else {
+        result[idx].2 += 1;
+      }
     }
     result
   }
@@ -265,7 +275,20 @@ impl ServerMetric {
       .values()
       .take(n)
       .rev()
-      .cloned()
+      .filter_map(|id| {
+        let cmd_stat = self.commands.get(id)?;
+        match cmd_stat.status {
+          CommandStatus::STARTED => {
+            unreachable!("Only finished commands should be inserted into `slowest_commands`")
+          }
+          CommandStatus::FAILED(CommandStatusFailed { time_taken, .. }) => Some(
+            FinishedCommandInfo::new(time_taken, cmd_stat.name.clone(), cmd_stat.command.clone()),
+          ),
+          CommandStatus::SUCCESSFUL(CommandStatuSuccessful { time_taken, .. }) => Some(
+            FinishedCommandInfo::new(time_taken, cmd_stat.name.clone(), cmd_stat.command.clone()),
+          ),
+        }
+      })
       .collect()
   }
 }
@@ -274,19 +297,19 @@ pub struct CommandInfoHandler;
 
 impl CommandEventHandler for CommandInfoHandler {
   fn handle_command_started_event(&self, event: CommandStartedEvent) {
-    println!("handle_command_started_event:{:#?}", event);
+    // println!("handle_command_started_event:{:#?}", event);
     let mut handle = SERVER_METRIC.as_ref().lock().unwrap();
     handle.add_init_command(event);
   }
 
   fn handle_command_succeeded_event(&self, event: CommandSucceededEvent) {
-    println!("handle_command_succeeded_event:{:#?}", event);
+    // println!("handle_command_succeeded_event:{:#?}", event);
     let mut handle = SERVER_METRIC.as_ref().lock().unwrap();
     handle.add_successful_command(event);
   }
 
   fn handle_command_failed_event(&self, event: CommandFailedEvent) {
-    println!("handle_command_failed_event:{:#?}", event);
+    // println!("handle_command_failed_event:{:#?}", event);
     let mut handle = SERVER_METRIC.as_ref().lock().unwrap();
     handle.add_failed_command(event);
   }

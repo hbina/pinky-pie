@@ -1,43 +1,17 @@
-import { cloneDeep } from "lodash";
-import { useEffect, useState } from "react";
-import { Modal } from "react-bootstrap";
+import { useEffect, useMemo, useState } from "react";
+import { Card } from "react-bootstrap";
+import { AxisOptions, Chart } from "react-charts";
 
-import { VALUE_STATES } from "../types";
+import { DISPLAY_TYPES, VALUE_STATES } from "../types";
 import { AppState } from "../App";
-import { mongodb_n_slowest_commands, mongodb_server_metric } from "../util";
+import { mongodb_get_commands_statistics_per_sec } from "../util";
 
 export type ServerMetricProps = {
-  visible: boolean;
-  status: VALUE_STATES;
-  access_pattern: Record<
-    number,
-    {
-      name: string;
-      command: Record<string, unknown>;
-      status:
-        | {
-            INITIATED: {};
-          }
-        | {
-            SUCCESSFUL: {
-              time_taken: number;
-              reply: Record<string, unknown>;
-            };
-          }
-        | {
-            FAILED: {
-              time_taken: number;
-              message: string;
-            };
-          };
-    }
-  >;
+  cmds_per_sec: [number, number, number][];
 };
 
 export const SERVER_INFO_INITIAL_STATE: ServerMetricProps = {
-  visible: false,
-  status: VALUE_STATES.UNLOADED,
-  access_pattern: {},
+  cmds_per_sec: Array.from({ length: 20 }, () => [0, 0, 0]),
 };
 
 export const useServerMetricState = () => {
@@ -57,26 +31,25 @@ export const ServerMetric = ({
       state: { url, port, status: connectionState },
     },
     serverMetricState: {
-      state: { visible, status },
+      state: { cmds_per_sec },
       setState,
     },
+    setDisplay,
   },
 }: Readonly<{ appStates: AppState }>) => {
   useEffect(() => {
     const intervalId = setInterval(() => {
       const f = async () => {
         try {
-          if (
-            visible &&
-            connectionState === VALUE_STATES.LOADED &&
-            status === VALUE_STATES.UNLOADED
-          ) {
-            const result = await mongodb_server_metric();
-            console.log("result", result);
-            const slowest_commands = await mongodb_n_slowest_commands({
-              count: 10,
+          if (connectionState === VALUE_STATES.LOADED) {
+            const result = await mongodb_get_commands_statistics_per_sec({
+              count: 100,
             });
-            console.log("slowest_commands", slowest_commands);
+            console.log("result", result);
+            setState((state) => ({
+              ...state,
+              cmds_per_sec: result,
+            }));
           }
         } catch (e) {
           console.error(e);
@@ -85,30 +58,104 @@ export const ServerMetric = ({
       f();
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [port, url, connectionState, visible, status, setState]);
+  }, [port, url, connectionState, setState]);
+
+  const data = useMemo(
+    () => [
+      {
+        label: "Started commands",
+        data: cmds_per_sec.map((count, idx) => ({
+          primary: idx,
+          secondary: count[0],
+        })),
+      },
+      {
+        label: "Failed commands",
+        data: cmds_per_sec.map((count, idx) => ({
+          primary: idx,
+          secondary: count[1],
+        })),
+      },
+      {
+        label: "Successful commands",
+        data: cmds_per_sec.map((count, idx) => ({
+          primary: idx,
+          secondary: count[2],
+        })),
+      },
+    ],
+    [cmds_per_sec]
+  );
+
+  const primaryAxis = useMemo<
+    AxisOptions<{
+      primary: number;
+      secondary: number;
+    }>
+  >(
+    () => ({
+      getValue: (datum) => datum.primary,
+      scaleType: "linear",
+      elementType: "line",
+    }),
+    []
+  );
+
+  const secondaryAxes = useMemo<
+    AxisOptions<{
+      primary: number;
+      secondary: number;
+    }>[]
+  >(
+    () => [
+      {
+        getValue: (datum) => datum.secondary,
+        scaleType: "linear",
+        elementType: "line",
+      },
+    ],
+    []
+  );
 
   return (
-    <Modal
-      show={visible}
-      onHide={() =>
-        setState((state) => ({
-          ...cloneDeep(state),
-          visible: false,
-        }))
-      }
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        padding: "5px",
+        rowGap: "5px",
+      }}
     >
-      <Modal.Header closeButton>
-        <Modal.Title>Server Metric</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            rowGap: "5px",
-          }}
-        ></div>
-      </Modal.Body>
-    </Modal>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+        }}
+      >
+        <button onClick={() => setDisplay(DISPLAY_TYPES.MAIN)}>Back</button>
+      </div>
+      <Card>
+        <Card.Header>Command Statistics</Card.Header>
+        <Card.Body>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              rowGap: "5px",
+              overflowX: "auto",
+              height: "300px",
+            }}
+          >
+            <Chart
+              options={{
+                data,
+                primaryAxis,
+                secondaryAxes,
+              }}
+            />
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
   );
 };

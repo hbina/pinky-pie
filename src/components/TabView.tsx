@@ -1,9 +1,10 @@
-import { ReactElement, useState } from "react";
+import { useState } from "react";
 
-export const TabView = (props: {
-  children: ReactElement<{ eventKey: string }>[];
-}) => {
-  const [key, setKey] = useState(props.children[0].props.eventKey);
+// FIXME: Fix the type annotations for the children here...
+
+export const TabView = (props: { children: any[] }) => {
+  const flatten_children = props.children.flat();
+  const [key, setKey] = useState<string>(flatten_children[0].props.eventKey);
 
   return (
     <>
@@ -14,18 +15,20 @@ export const TabView = (props: {
           columnGap: "5px",
         }}
       >
-        {props.children.map((c, idx) => (
+        {flatten_children.map((c, idx) => (
           <button
             key={idx}
             disabled={c.props.eventKey === key}
-            onClick={() => setKey(c.props.eventKey)}
+            onClick={() =>
+              c.props.onClick ? c.props.onClick() : setKey(c.props.eventKey)
+            }
           >
             {c.props.eventKey}
           </button>
         ))}
       </div>
       <>
-        {props.children.map((c) => (
+        {flatten_children.map((c) => (
           <div key={c.props.eventKey} hidden={c.props.eventKey !== key}>
             {c}
           </div>
@@ -34,7 +37,9 @@ export const TabView = (props: {
     </>
   );
 };
+
 export const TabViewRow = (props: {
   eventKey: string;
-  children: JSX.Element;
+  children: any;
+  onClick?: () => void;
 }) => props.children;

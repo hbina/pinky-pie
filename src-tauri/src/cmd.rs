@@ -10,7 +10,7 @@ use mongodb::{
 use tauri::command;
 
 use crate::mongodb_events::{
-  CommandInfoHandler, CommandStatistics, ServerInfo, ServerInfoHandler, SERVER_INFO, SERVER_METRIC,
+  CommandInfoHandler, ServerInfo, ServerInfoHandler, SERVER_INFO, SERVER_METRIC,
 };
 use crate::{error::PError, model::DatabaseInformation};
 use crate::{
@@ -110,9 +110,9 @@ pub async fn mongodb_server_info() -> ServerInfo {
 }
 
 #[command]
-pub async fn mongodb_server_metric() -> HashMap<String, Vec<CommandStatistics>> {
+pub async fn mongodb_get_commands_statistics_per_sec(count: usize) -> Vec<(usize, usize, usize)> {
   let result = &*SERVER_METRIC.lock().unwrap();
-  result.get_access_pattern()
+  result.get_commands_statistics_per_sec(count)
 }
 
 #[command]

@@ -203,7 +203,8 @@ export const AggregateTab = ({
         style={{
           display: "flex",
           flexDirection: "row",
-          padding: "5px",
+          paddingTop: "5px",
+          paddingBottom: "5px",
           justifyContent: "space-between",
         }}
       >
@@ -211,6 +212,7 @@ export const AggregateTab = ({
           style={{
             display: "flex",
             flexDirection: "row",
+            columnGap: "1px",
           }}
         >
           <InputGroup.Text
