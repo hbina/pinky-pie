@@ -17,7 +17,6 @@ export type MongodbUrlBarProps = {
   port: number;
   status: VALUE_STATES;
   databases: Record<string, DatabaseSpecification>;
-  databasesState: VALUE_STATES;
   databaseName: string | undefined;
   collectionName: string | undefined;
 };
@@ -27,7 +26,6 @@ export const MONGODB_URL_BAR_INITIAL_STATE: MongodbUrlBarProps = {
   port: 27017,
   status: VALUE_STATES.UNLOADED,
   databases: {},
-  databasesState: VALUE_STATES.UNLOADED,
   databaseName: undefined,
   collectionName: undefined,
 };
@@ -47,15 +45,7 @@ export const MongoDbUrlBar = ({
 }: Readonly<{ appStates: AppState }>) => {
   const {
     connectionData: {
-      state: {
-        url,
-        port,
-        status,
-        databases,
-        databasesState,
-        databaseName,
-        collectionName,
-      },
+      state: { url, port, status, databases, databaseName, collectionName },
       setState,
     },
     documentsTabState: { setState: setDocumentsTabState },
@@ -75,9 +65,7 @@ export const MongoDbUrlBar = ({
             ...state,
             status: VALUE_STATES.LOADING,
             databases: {},
-            databasesState: VALUE_STATES.LOADING,
             databaseName: undefined,
-            collectionsState: VALUE_STATES.UNLOADED,
             collectionName: undefined,
           }));
           const result = await mongodb_connect({
@@ -88,7 +76,6 @@ export const MongoDbUrlBar = ({
             ...state,
             status: VALUE_STATES.LOADED,
             databases: result,
-            databasesState: VALUE_STATES.LOADED,
           }));
         } catch (error) {
           console.error(error);
@@ -188,22 +175,23 @@ export const MongoDbUrlBar = ({
           </button>
           {/* DATABASES SELECT */}
           <>
-            {databasesState === VALUE_STATES.UNLOADED && <div></div>}
-            {databasesState === VALUE_STATES.LOADING && (
+            {status === VALUE_STATES.UNLOADED && <div></div>}
+            {status === VALUE_STATES.LOADING && (
               <Spinner animation="border" role="status">
                 <span className="visually-hidden">Loading...</span>
               </Spinner>
             )}
-            {databasesState === VALUE_STATES.LOADED && isEmpty(databases) && (
+            {status === VALUE_STATES.LOADED && isEmpty(databases) && (
               <div>No databases available</div>
             )}
-            {databasesState === VALUE_STATES.LOADED && !isEmpty(databases) && (
+            {status === VALUE_STATES.LOADED && !isEmpty(databases) && (
               <select
                 name={databaseName}
                 onChange={(value) =>
                   setState((state) => ({
                     ...state,
                     databaseName: value.target.value,
+                    collectionName: undefined,
                   }))
                 }
               >
