@@ -52,12 +52,7 @@ export const SchemaTab = ({
 
   useEffect(() => {
     const f = async () => {
-      if (
-        false &&
-        status === VALUE_STATES.UNLOADED &&
-        databaseName &&
-        collectionName
-      ) {
+      if (status === VALUE_STATES.UNLOADED && databaseName && collectionName) {
         try {
           setState((state) => ({
             ...state,
