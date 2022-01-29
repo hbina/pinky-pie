@@ -40,7 +40,7 @@ const HORIZONTAL_STYLE: CSS.Properties = {
 const collapsibleBsonTypes = (value: any) =>
   getBsonType(value) === "object" || getBsonType(value) === "array";
 
-export class ObjectJsonViewer extends React.PureComponent<
+export class BsonObjectViewer extends React.PureComponent<
   ObjectJsonViewerProps,
   Record<string, boolean>
 > {
@@ -66,7 +66,6 @@ export class ObjectJsonViewer extends React.PureComponent<
               <tbody>
                 {Object.entries(value).map(([k, v]) => {
                   const hidden = collapsibleBsonTypes(v) && this.state[k];
-                  console.log("k", k, "hidden", hidden);
                   return (
                     <tr style={{}} key={k}>
                       <td
@@ -102,7 +101,6 @@ export class ObjectJsonViewer extends React.PureComponent<
                             }}
                             onClick={() => {
                               this.setState((state) => {
-                                console.log("v", state[k]);
                                 return {
                                   ...state,
                                   [k]: state[k] ? false : true,
@@ -122,7 +120,7 @@ export class ObjectJsonViewer extends React.PureComponent<
                       >
                         <div hidden={!hidden}>...</div>
                         <div hidden={hidden}>
-                          <JsonViewer value={v} />
+                          <BsonViewer value={v} />
                         </div>
                       </td>
                     </tr>
@@ -139,7 +137,7 @@ export class ObjectJsonViewer extends React.PureComponent<
   }
 }
 
-export const JsonViewer = ({ value }: JsonViewerProps) => {
+export const BsonViewer = ({ value }: JsonViewerProps) => {
   if (typeof value === "bigint") {
     return <div>{value}</div>;
   } else if (typeof value === "boolean") {
@@ -160,7 +158,7 @@ export const JsonViewer = ({ value }: JsonViewerProps) => {
         </div>
       );
     } else {
-      return <ObjectJsonViewer value={value} />;
+      return <BsonObjectViewer value={value} />;
     }
   } else if (typeof value === "string") {
     return <div>{value}</div>;

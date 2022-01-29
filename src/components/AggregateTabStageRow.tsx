@@ -7,7 +7,7 @@ import {
   AggregateTabStageOutput,
   AGGREGATE_OPERATIONS,
 } from "./AggregateTab";
-import { JsonViewer } from "./JsonViewer";
+import { BsonViewer } from "./BsonViewer";
 
 export type AggregateTabStageRowProps = {
   rowIdx: number;
@@ -254,7 +254,7 @@ export const AggregateTabStageRow = ({
                     backgroundColor: "white",
                   }}
                 >
-                  <JsonViewer value={document} />
+                  <BsonViewer value={document} />
                 </div>
               ))}
             </div>

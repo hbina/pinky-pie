@@ -11,7 +11,7 @@ import {
 import { BsonDocument, VALUE_STATES } from "../types";
 import { AppState } from "../App";
 import { mongodb_count_documents, mongodb_find_documents } from "../util";
-import { JsonViewer } from "./JsonViewer";
+import { BsonViewer } from "./BsonViewer";
 
 export type DocumentsTabProps = {
   documents: BsonDocument[];
@@ -480,7 +480,7 @@ export const DocumentsTab = ({
                   overflow: "auto",
                 }}
               >
-                <JsonViewer value={document} />
+                <BsonViewer value={document} />
               </div>
             ))}
           </div>
