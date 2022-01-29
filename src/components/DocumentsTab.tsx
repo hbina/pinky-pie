@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import ReactJson from "react-json-view";
 import {
   Card,
   InputGroup,
@@ -13,6 +12,7 @@ import {
 import { BsonDocument, VALUE_STATES } from "../types";
 import { AppState } from "../App";
 import { mongodb_count_documents, mongodb_find_documents } from "../util";
+import { JsonViewer } from "./JsonViewer";
 
 export type DocumentsTabProps = {
   documents: BsonDocument[];
@@ -474,15 +474,7 @@ export const DocumentsTab = ({
               <div key={idx}>
                 <Card>
                   <Card.Body>
-                    <ReactJson
-                      name={false}
-                      src={document}
-                      collapsed={jsonDepth}
-                      iconStyle="square"
-                      indentWidth={2}
-                      enableClipboard={false}
-                      sortKeys={true}
-                    />
+                    <JsonViewer value={document} />
                   </Card.Body>
                 </Card>
               </div>

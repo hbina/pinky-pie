@@ -9,6 +9,7 @@ import {
   AggregateTabStageOutput,
   AGGREGATE_OPERATIONS,
 } from "./AggregateTab";
+import { JsonViewer } from "./JsonViewer";
 
 export type AggregateTabStageRowProps = {
   rowIdx: number;
@@ -249,8 +250,6 @@ export const AggregateTabStageRow = ({
                 <div
                   key={colIdx}
                   style={{
-                    minWidth: "300px",
-                    maxWidth: "300px",
                     padding: "5px",
                     borderStyle: "inset",
                     borderColor: "black",
@@ -259,18 +258,7 @@ export const AggregateTabStageRow = ({
                     backgroundColor: "white",
                   }}
                 >
-                  <ReactJson
-                    name={false}
-                    src={document}
-                    collapsed={1}
-                    iconStyle="square"
-                    indentWidth={2}
-                    displayObjectSize={false}
-                    displayDataTypes={true}
-                    enableClipboard={false}
-                    sortKeys={true}
-                    onSelect={(v) => console.log("v", v)}
-                  />
+                  <JsonViewer value={document} />
                 </div>
               ))}
             </div>
