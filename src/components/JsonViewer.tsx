@@ -1,13 +1,10 @@
-import { Badge } from "react-bootstrap";
+import React from "react";
 import CSS from "csstype";
+import { GREEN_COLOR_THEME, RUSTY_COLOR_THEME } from "../constant";
 
 const getBsonType = (value: any) => {
   if (typeof value === "object" && value === null) {
-    return (
-      <Badge pill bg="primary">
-        null
-      </Badge>
-    );
+    return "null";
   } else if (typeof value === "object" && value !== null) {
     if (typeof value["$oid"] === "string") {
       return "ObjectID";
@@ -21,12 +18,128 @@ const getBsonType = (value: any) => {
   }
 };
 
-export const JsonViewer = ({ value }: { value: any }) => {
-  const horizontalStyle: CSS.Properties = {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-  };
+export type JsonViewerProps = {
+  value: any;
+};
+
+type ObjectJsonViewerProps = {
+  value: Record<string, unknown>;
+};
+
+const HORIZONTAL_STYLE: CSS.Properties = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  borderStyle: "inset",
+  borderColor: "black",
+  borderWidth: "1px",
+  borderRadius: "5px",
+  backgroundColor: RUSTY_COLOR_THEME,
+};
+
+const collapsibleBsonTypes = (value: any) =>
+  getBsonType(value) === "object" || getBsonType(value) === "array";
+
+export class ObjectJsonViewer extends React.PureComponent<
+  ObjectJsonViewerProps,
+  Record<string, boolean>
+> {
+  constructor(props: ObjectJsonViewerProps) {
+    super(props);
+    this.state = Object.fromEntries(
+      Object.entries(props.value).map(([k, v]) => [k, collapsibleBsonTypes(v)])
+    );
+  }
+
+  render() {
+    const { value } = this.props;
+
+    if (typeof value === "object" && value !== null) {
+      if (Object.entries(value).length === 0 && Array.isArray(value)) {
+        return <div>[]</div>;
+      } else if (Object.entries(value).length === 0 && !Array.isArray(value)) {
+        return <div>{{}}</div>;
+      } else {
+        return (
+          <div style={HORIZONTAL_STYLE}>
+            <table>
+              <tbody>
+                {Object.entries(value).map(([k, v]) => {
+                  const hidden = collapsibleBsonTypes(v) && this.state[k];
+                  console.log("k", k, "hidden", hidden);
+                  return (
+                    <tr style={{}} key={k}>
+                      <td
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          padding: "5px",
+                          columnGap: "10px",
+                        }}
+                      >
+                        <div>{k}</div>
+                        {!collapsibleBsonTypes(v) ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              borderRadius: "20px",
+                              paddingTop: "4px",
+                              paddingLeft: "7px",
+                              paddingBottom: "4px",
+                              paddingRight: "7px",
+                              backgroundColor: GREEN_COLOR_THEME,
+                            }}
+                          >
+                            {getBsonType(v)}
+                          </div>
+                        ) : (
+                          <button
+                            style={{
+                              display: "flex",
+                              backgroundColor: GREEN_COLOR_THEME,
+                              borderRadius: "20px",
+                            }}
+                            onClick={() => {
+                              this.setState((state) => {
+                                console.log("v", state[k]);
+                                return {
+                                  ...state,
+                                  [k]: state[k] ? false : true,
+                                };
+                              });
+                            }}
+                          >
+                            {getBsonType(v)}
+                          </button>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          borderLeft: "1px solid black",
+                          padding: "5px",
+                        }}
+                      >
+                        <div hidden={!hidden}>...</div>
+                        <div hidden={hidden}>
+                          <JsonViewer value={v} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+    } else {
+      return <div>Unknown type</div>;
+    }
+  }
+}
+
+export const JsonViewer = ({ value }: JsonViewerProps) => {
   if (typeof value === "bigint") {
     return <div>{value}</div>;
   } else if (typeof value === "boolean") {
@@ -34,9 +147,9 @@ export const JsonViewer = ({ value }: { value: any }) => {
   } else if (typeof value === "function") {
     return <div>{JSON.stringify(value)}</div>;
   } else if (typeof value === "number") {
-    return <div>{value ? "true" : "false"}</div>;
+    return <div>{value}</div>;
   } else if (typeof value === "object" && value === null) {
-    return <div></div>;
+    return <div>null</div>;
   } else if (typeof value === "object" && value !== null) {
     if (typeof value["$oid"] === "string") {
       return <div>{value["$oid"]}</div>;
@@ -47,42 +160,7 @@ export const JsonViewer = ({ value }: { value: any }) => {
         </div>
       );
     } else {
-      return (
-        <div style={horizontalStyle}>
-          <table>
-            <tbody>
-              {Object.entries(value).map(([k, v]) => (
-                <tr
-                  style={{
-                    border: "1px solid black",
-                  }}
-                  key={k}
-                >
-                  <td
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div>{k}</div>
-                    <Badge pill bg="primary">
-                      {getBsonType(v)}
-                    </Badge>
-                  </td>
-                  <td
-                    style={{
-                      borderLeft: "1px solid black",
-                    }}
-                  >
-                    <JsonViewer value={v} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
+      return <ObjectJsonViewer value={value} />;
     }
   } else if (typeof value === "string") {
     return <div>{value}</div>;

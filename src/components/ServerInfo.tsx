@@ -9,7 +9,7 @@ import {
   mongodb_get_database_topology,
 } from "../util";
 import { AxisOptions, Chart } from "react-charts";
-import { COLOR_THEME } from "../constant";
+import { RUSTY_COLOR_THEME } from "../constant";
 
 export type ServerInfoProps = {
   servers: {
@@ -51,6 +51,7 @@ export const ServerInfo = ({
       state: { servers, heartbeat },
       setState,
     },
+    display,
     setDisplay,
   },
 }: Readonly<{ appStates: AppState }>) => {
@@ -58,7 +59,10 @@ export const ServerInfo = ({
     const intervalId = setInterval(() => {
       const f = async () => {
         try {
-          if (connectionState === VALUE_STATES.LOADED) {
+          if (
+            display === DISPLAY_TYPES.INFO &&
+            connectionState === VALUE_STATES.LOADED
+          ) {
             const result = await mongodb_get_database_topology();
             setState((state) => ({
               ...state,
@@ -70,15 +74,18 @@ export const ServerInfo = ({
         }
       };
       f();
-    }, 5000);
+    }, 1000);
     return () => clearInterval(intervalId);
-  }, [port, url, connectionState, servers, setState]);
+  }, [port, url, connectionState, servers, setState, display]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
       const f = async () => {
         try {
-          if (connectionState === VALUE_STATES.LOADED) {
+          if (
+            display === DISPLAY_TYPES.INFO &&
+            connectionState === VALUE_STATES.LOADED
+          ) {
             const result = await mongodb_get_connection_heartbeat();
             setState((state) => ({
               ...state,
@@ -90,9 +97,9 @@ export const ServerInfo = ({
         }
       };
       f();
-    }, 5000);
+    }, 1000);
     return () => clearInterval(intervalId);
-  }, [port, url, connectionState, servers, setState]);
+  }, [port, url, connectionState, servers, setState, display]);
 
   const data = useMemo(
     () => [
@@ -188,7 +195,7 @@ export const ServerInfo = ({
                 borderWidth: "1px",
                 borderRadius: "10px",
                 padding: "20px",
-                backgroundColor: COLOR_THEME,
+                backgroundColor: RUSTY_COLOR_THEME,
               }}
             >
               <table key={idx}>

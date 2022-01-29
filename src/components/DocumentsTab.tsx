@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Card,
   InputGroup,
   Spinner,
   FormControl,
@@ -24,6 +23,7 @@ export type DocumentsTabProps = {
   perPage: number;
   page: number;
   jsonDepth: number;
+  hiddenMap: Map<Array<string>, boolean>;
 };
 
 export const DOCUMENTS_TAB_INITIATE_STATE: DocumentsTabProps = {
@@ -36,6 +36,7 @@ export const DOCUMENTS_TAB_INITIATE_STATE: DocumentsTabProps = {
   perPage: 5,
   page: 0,
   jsonDepth: 1,
+  hiddenMap: new Map(),
 };
 
 export const useDocumentsTabState = () => {
@@ -50,8 +51,9 @@ export const useDocumentsTabState = () => {
 };
 
 export const DocumentsTab = ({
-  appStates: {
-    window: { height },
+  appStates,
+}: Readonly<{ appStates: AppState }>) => {
+  const {
     connectionData: {
       state: { status: connectionStatus, databaseName, collectionName },
     },
@@ -69,8 +71,8 @@ export const DocumentsTab = ({
       },
       setState,
     },
-  },
-}: Readonly<{ appStates: AppState }>) => {
+  } = appStates;
+
   useEffect(() => {
     const f = async () => {
       if (
@@ -83,8 +85,6 @@ export const DocumentsTab = ({
           setState((state) => ({
             ...state,
             status: VALUE_STATES.LOADING,
-            documents: [],
-            documentsCount: 0,
           }));
           // NOTE: This 2 promises should be split up
           const documents = await mongodb_find_documents({
@@ -471,12 +471,16 @@ export const DocumentsTab = ({
             }}
           >
             {documents.map((document, idx) => (
-              <div key={idx}>
-                <Card>
-                  <Card.Body>
-                    <JsonViewer value={document} />
-                  </Card.Body>
-                </Card>
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  padding: "5px",
+                  paddingBottom: "5px",
+                  overflow: "auto",
+                }}
+              >
+                <JsonViewer value={document} />
               </div>
             ))}
           </div>

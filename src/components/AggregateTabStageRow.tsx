@@ -1,7 +1,5 @@
 import { cloneDeep } from "lodash";
 import { Spinner } from "react-bootstrap";
-import ReactJson from "react-json-view";
-import { COLOR_THEME } from "../constant";
 
 import { ReactSetState, VALUE_STATES } from "../types";
 import {
@@ -47,7 +45,6 @@ export const AggregateTabStageRow = ({
         borderColor: "black",
         borderWidth: "1px",
         borderRadius: "5px",
-        backgroundColor: COLOR_THEME,
       }}
     >
       {/* Input column */}
@@ -251,7 +248,6 @@ export const AggregateTabStageRow = ({
                   key={colIdx}
                   style={{
                     padding: "5px",
-                    borderStyle: "inset",
                     borderColor: "black",
                     borderWidth: "1px",
                     borderRadius: "5px",
