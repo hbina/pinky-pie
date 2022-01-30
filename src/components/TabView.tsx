@@ -13,6 +13,8 @@ export const TabView = (props: { children: any[] }) => {
           display: "flex",
           flexDirection: "row",
           columnGap: "5px",
+          paddingBottom: "5px",
+          borderBottom: "1px solid black",
         }}
       >
         {flatten_children.map((c, idx) => (

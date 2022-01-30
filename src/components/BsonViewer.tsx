@@ -18,7 +18,7 @@ const getBsonType = (value: any) => {
   }
 };
 
-export type JsonViewerProps = {
+export type BsonViewerProps = {
   value: any;
 };
 
@@ -56,9 +56,9 @@ export class BsonObjectViewer extends React.PureComponent<
 
     if (typeof value === "object" && value !== null) {
       if (Object.entries(value).length === 0 && Array.isArray(value)) {
-        return <div>[]</div>;
+        return <div>{"[]"}</div>;
       } else if (Object.entries(value).length === 0 && !Array.isArray(value)) {
-        return <div>{{}}</div>;
+        return <div>{"{}"}</div>;
       } else {
         return (
           <div style={HORIZONTAL_STYLE}>
@@ -137,7 +137,7 @@ export class BsonObjectViewer extends React.PureComponent<
   }
 }
 
-export const BsonViewer = ({ value }: JsonViewerProps) => {
+export const BsonViewer = ({ value }: BsonViewerProps) => {
   if (typeof value === "bigint") {
     return <div>{value}</div>;
   } else if (typeof value === "boolean") {
