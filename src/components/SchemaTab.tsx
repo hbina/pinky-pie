@@ -93,6 +93,8 @@ export const SchemaTab = ({
         direction="horizontal"
         style={{
           columnGap: "5px",
+          paddingBottom: "5px",
+          borderBottom: "1px solid black",
         }}
       >
         <InputGroup>

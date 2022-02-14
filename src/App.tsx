@@ -49,6 +49,7 @@ export const useAppState = () => {
 const App = () => {
   const appStates = useAppState();
   const {
+    window: { width, height },
     connectionData: {
       state: { databaseName, collectionName },
     },
@@ -67,7 +68,12 @@ const App = () => {
   counter += 1;
 
   return (
-    <div>
+    <div
+      style={{
+        maxWidth: `${width}px`,
+        maxHeight: `${height}px`,
+      }}
+    >
       <div
         hidden={display !== DISPLAY_TYPES.MAIN}
         style={{

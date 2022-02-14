@@ -201,6 +201,7 @@ export const AggregateTab = ({
       style={{
         display: "flex",
         flexDirection: "column",
+        rowGap: "5px",
       }}
     >
       {/* inputs */}
@@ -211,6 +212,7 @@ export const AggregateTab = ({
           paddingTop: "5px",
           paddingBottom: "5px",
           justifyContent: "space-between",
+          borderBottom: "1px solid black",
         }}
       >
         <div

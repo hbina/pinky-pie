@@ -91,7 +91,11 @@ export const MongoDbUrlBar = ({
       style={{
         display: "flex",
         flexDirection: "row",
+        flexWrap: "wrap",
+        rowGap: "5px",
         justifyContent: "space-between",
+        paddingBottom: "5px",
+        borderBottom: "1px solid black",
       }}
     >
       <div

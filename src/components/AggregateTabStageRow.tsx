@@ -1,7 +1,5 @@
 import { cloneDeep } from "lodash";
 import { Spinner } from "react-bootstrap";
-import ReactJson from "react-json-view";
-import { COLOR_THEME } from "../constant";
 
 import { ReactSetState, VALUE_STATES } from "../types";
 import {
@@ -9,6 +7,7 @@ import {
   AggregateTabStageOutput,
   AGGREGATE_OPERATIONS,
 } from "./AggregateTab";
+import { BsonViewer } from "./BsonViewer";
 
 export type AggregateTabStageRowProps = {
   rowIdx: number;
@@ -46,7 +45,6 @@ export const AggregateTabStageRow = ({
         borderColor: "black",
         borderWidth: "1px",
         borderRadius: "5px",
-        backgroundColor: COLOR_THEME,
       }}
     >
       {/* Input column */}
@@ -249,28 +247,14 @@ export const AggregateTabStageRow = ({
                 <div
                   key={colIdx}
                   style={{
-                    minWidth: "300px",
-                    maxWidth: "300px",
                     padding: "5px",
-                    borderStyle: "inset",
                     borderColor: "black",
                     borderWidth: "1px",
                     borderRadius: "5px",
                     backgroundColor: "white",
                   }}
                 >
-                  <ReactJson
-                    name={false}
-                    src={document}
-                    collapsed={1}
-                    iconStyle="square"
-                    indentWidth={2}
-                    displayObjectSize={false}
-                    displayDataTypes={true}
-                    enableClipboard={false}
-                    sortKeys={true}
-                    onSelect={(v) => console.log("v", v)}
-                  />
+                  <BsonViewer value={document} />
                 </div>
               ))}
             </div>

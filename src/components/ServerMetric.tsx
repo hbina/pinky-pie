@@ -34,6 +34,7 @@ export const ServerMetric = ({
       state: { cmds_per_sec },
       setState,
     },
+    display,
     setDisplay,
   },
 }: Readonly<{ appStates: AppState }>) => {
@@ -41,7 +42,10 @@ export const ServerMetric = ({
     const intervalId = setInterval(() => {
       const f = async () => {
         try {
-          if (connectionState === VALUE_STATES.LOADED) {
+          if (
+            display === DISPLAY_TYPES.METRIC &&
+            connectionState === VALUE_STATES.LOADED
+          ) {
             const result = await mongodb_get_commands_statistics_per_sec({
               count: 100,
             });
@@ -55,9 +59,9 @@ export const ServerMetric = ({
         }
       };
       f();
-    }, 5000);
+    }, 1000);
     return () => clearInterval(intervalId);
-  }, [port, url, connectionState, setState]);
+  }, [port, url, connectionState, setState, display]);
 
   const data = useMemo(
     () => [
