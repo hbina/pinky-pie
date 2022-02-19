@@ -2,6 +2,10 @@ on: [push, pull_request]
 
 name: Continuous integration
 
+defaults:
+  run:
+    working-directory: ./src-tauri
+
 jobs:
   check:
     name: Check
