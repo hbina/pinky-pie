@@ -16,7 +16,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
-          working-directory: ./src-tauri
+        working-directory: ./src-tauri
 
   test:
     name: Test Suite
