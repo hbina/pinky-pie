@@ -6,6 +6,9 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./src-tauri
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -16,7 +19,6 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
-        working-directory: ./src-tauri
 
   test:
     name: Test Suite
