@@ -17,7 +17,7 @@ jobs:
           toolchain: stable
           override: true
       - name: List all folders
-        run: find . -type d
+        run: find . -type d -maxdepth 5
       - uses: actions-rs/cargo@v1
         with:
           command: check
