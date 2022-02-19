@@ -2,10 +2,6 @@ on: [push, pull_request]
 
 name: Continuous integration
 
-defaults:
-  run:
-    working-directory: ./src-tauri
-
 jobs:
   check:
     name: Check
@@ -20,6 +16,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
+          working-directory: ./src-tauri
 
   test:
     name: Test Suite
