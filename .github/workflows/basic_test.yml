@@ -16,11 +16,10 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - name: Change working directory
-        run: cd ./src-tauri
       - uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --manifest-path src-tauri\Cargo.toml
 
   test:
     name: Test Suite
@@ -35,6 +34,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --manifest-path src-tauri\Cargo.toml
 
   fmt:
     name: Rustfmt
@@ -50,7 +50,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: --all -- --check --manifest-path src-tauri\Cargo.toml
 
   clippy:
     name: Clippy
@@ -66,4 +66,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: --manifest-path src-tauri\Cargo.toml -- -D warnings
